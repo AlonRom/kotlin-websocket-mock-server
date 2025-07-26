@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mock WebSocket Server</title>
+</head>
+<body>
+    <h1>Mock WebSocket Server UI</h1>
+    <textarea id="message" rows="4" cols="50" placeholder="Type your mock message here..."></textarea><br>
+    <button onclick="sendMessage()">Send to all clients</button>
+
+    <script>
+        let socket = new WebSocket("ws://" + location.host + "/ws");
+
+        socket.onopen = function() {
+            console.log("WebSocket connection established.");
+        };
+
+        socket.onmessage = function(event) {
+            console.log("Message from server:", event.data);
+        };
+
+        function sendMessage() {
+            const msg = document.getElementById("message").value;
+            socket.send(msg);
+        }
+    </script>
+</body>
+</html>
