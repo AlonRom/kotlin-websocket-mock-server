@@ -10,12 +10,17 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.websocketclient.databinding.ActivityMainBinding
 import okhttp3.*
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.*
+import java.net.*
+import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: MainViewModel
     private var webSocket: WebSocket? = null
     private lateinit var messagesAdapter: MessagesAdapter
+    private var serverDiscovery: ServerDiscovery? = null
+    private lateinit var serverAdapter: ServerAdapter
 
     companion object {
         private const val TAG = "WebSocketClient"
@@ -30,39 +35,7 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         setupObservers()
         setupClickListeners()
-        setDefaultServerUrlAndHint()
-    }
-
-    private fun setDefaultServerUrlAndHint() {
-        try {
-            val isEmulator = isEmulator()
-            if (isEmulator) {
-                binding.serverUrlInput.setText("ws://10.0.2.2:8081/ws")
-                binding.serverUrlLayout.helperText = "Emulator detected: using 10.0.2.2 for localhost."
-            } else {
-                binding.serverUrlInput.setText("")
-                binding.serverUrlLayout.helperText = "Real device: Enter your computer's IP, e.g. ws://192.168.x.x:8081/ws"
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error setting default URL", e)
-            binding.serverUrlInput.setText("")
-            binding.serverUrlLayout.helperText = "Enter WebSocket URL (e.g. ws://192.168.x.x:8081/ws)"
-        }
-    }
-
-    private fun isEmulator(): Boolean {
-        return try {
-            (Build.FINGERPRINT.startsWith("generic") ||
-                    Build.FINGERPRINT.lowercase().contains("emulator") ||
-                    Build.MODEL.contains("Emulator") ||
-                    Build.MODEL.contains("Android SDK built for x86") ||
-                    Build.MANUFACTURER.contains("Genymotion") ||
-                    (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")) ||
-                    "google_sdk" == Build.PRODUCT)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error detecting emulator", e)
-            false
-        }
+        startServerDiscovery()
     }
 
     private fun setupRecyclerView() {
@@ -71,6 +44,14 @@ class MainActivity : AppCompatActivity() {
             binding.messagesRecyclerView.apply {
                 layoutManager = LinearLayoutManager(this@MainActivity)
                 adapter = messagesAdapter
+            }
+            
+            serverAdapter = ServerAdapter { server ->
+                connectToDiscoveredServer(server)
+            }
+            binding.discoveredServersRecyclerView.apply {
+                layoutManager = LinearLayoutManager(this@MainActivity)
+                adapter = serverAdapter
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error setting up RecyclerView", e)
@@ -135,6 +116,38 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "Error setting up click listeners", e)
         }
+    }
+
+    private fun startServerDiscovery() {
+        serverDiscovery = ServerDiscovery(
+            onServerDiscovered = { _ ->
+                runOnUiThread {
+                    updateDiscoveredServersList()
+                }
+            },
+            onDiscoveryError = { error ->
+                runOnUiThread {
+                    Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                }
+            }
+        )
+        serverDiscovery?.startDiscovery()
+    }
+
+    private fun updateDiscoveredServersList() {
+        val servers = serverDiscovery?.getDiscoveredServers() ?: emptyList()
+        serverAdapter.submitList(servers)
+        
+        if (servers.isNotEmpty()) {
+            binding.discoveredServersCard.visibility = android.view.View.VISIBLE
+        } else {
+            binding.discoveredServersCard.visibility = android.view.View.GONE
+        }
+    }
+
+    private fun connectToDiscoveredServer(server: DiscoveredServer) {
+        binding.serverUrlInput.setText(server.wsUrl)
+        connectToWebSocket()
     }
 
     private fun sendMessage() {
@@ -298,8 +311,9 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         try {
             webSocket?.close(1000, "Activity destroyed")
+            serverDiscovery?.stopDiscovery()
         } catch (e: Exception) {
             Log.e(TAG, "Error closing WebSocket on destroy", e)
         }
     }
-} 
+}
