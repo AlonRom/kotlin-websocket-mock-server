@@ -1,10 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Dark theme colors with glass-morphism effects -->
+    <color name="background_dark">#0F172A</color>
+    <color name="background_primary">#1E293B</color>
+    <color name="background_secondary">#334155</color>
+    <color name="surface_dark">#475569</color>
+    <color name="card_background">#64748B</color>
+    <color name="card_elevated">#94A3B8</color>
+    
+    <!-- Glass-morphism card colors -->
+    <color name="glass_card">#1E293B</color>
+    <color name="glass_card_light">#334155</color>
+    <color name="glass_overlay">#0F172A</color>
+    
+    <!-- Text colors -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#E2E8F0</color>
+    <color name="text_hint">#CBD5E1</color>
+    <color name="text_muted">#94A3B8</color>
+    
+    <!-- Vibrant accent colors from the design -->
+    <color name="accent_teal">#14B8A6</color>
+    <color name="accent_blue">#3B82F6</color>
+    <color name="accent_purple">#8B5CF6</color>
+    <color name="accent_magenta">#EC4899</color>
+    <color name="accent_orange">#F97316</color>
+    <color name="accent_amber">#F59E0B</color>
+    <color name="accent_green">#10B981</color>
+    
+    <!-- Status colors -->
+    <color name="success">#10B981</color>
+    <color name="error">#EF4444</color>
+    <color name="warning">#F59E0B</color>
+    <color name="info">#3B82F6</color>
+    
+    <!-- Legacy colors for compatibility -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="primary">#3B82F6</color>
+    <color name="primary_dark">#2563EB</color>
+    <color name="primary_light">#60A5FA</color>
+    <color name="accent">#F97316</color>
+    <color name="accent_light">#FB923C</color>
+    <color name="background">#0F172A</color>
+    <color name="surface">#475569</color>
+    <color name="divider">#64748B</color>
+    <color name="text_primary_legacy">#FFFFFF</color>
+    <color name="text_secondary_legacy">#E2E8F0</color>
+    <color name="text_hint_legacy">#CBD5E1</color>
+    <color name="purple_200">#C4B5FD</color>
+    <color name="purple_500">#8B5CF6</color>
+    <color name="purple_700">#7C3AED</color>
+    <color name="teal_200">#5EEAD4</color>
+    <color name="teal_700">#0F766E</color>
 </resources> 

@@ -1,28 +1,467 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Mock WebSocket Server</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%);
+            color: #FFFFFF;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        .header {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 32px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #3B82F6, #14B8A6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+        }
+
+        .header p {
+            color: #E2E8F0;
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card h2 {
+            color: #FFFFFF;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(45deg, #3B82F6, #14B8A6);
+            border-radius: 2px;
+        }
+
+        .button {
+            background: linear-gradient(45deg, #3B82F6, #14B8A6);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .button.secondary {
+            background: linear-gradient(45deg, #EC4899, #8B5CF6);
+            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+        }
+
+        .button.secondary:hover {
+            box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
+        }
+
+        .button:disabled {
+            background: #64748B;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid rgba(100, 116, 139, 0.5);
+            border-radius: 16px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            background: rgba(51, 65, 85, 0.8);
+            color: #FFFFFF;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: rgba(51, 65, 85, 0.9);
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #CBD5E1;
+        }
+
+        .messages {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            border-radius: 20px;
+            padding: 20px;
+            background: rgba(51, 65, 85, 0.6);
+            backdrop-filter: blur(10px);
+        }
+
+        .message {
+            background: rgba(30, 41, 59, 0.8);
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 16px;
+            border-left: 4px solid #3B82F6;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-wrap: break-word;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .message.api-request {
+            border-left-color: #F97316;
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        .message.client-connected {
+            border-left-color: #10B981;
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        .message.client-disconnected {
+            border-left-color: #EF4444;
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        .operation-item {
+            background: rgba(51, 65, 85, 0.8);
+            padding: 20px;
+            margin-bottom: 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .operation-data {
+            background: rgba(30, 41, 59, 0.6);
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            color: #E2E8F0;
+        }
+
+        .response-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 24px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        /* Custom scrollbar */
+        .messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: rgba(51, 65, 85, 0.3);
+            border-radius: 4px;
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 4px;
+        }
+
+        .messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.7);
+        }
+    </style>
 </head>
 <body>
-    <h1>Mock WebSocket Server UI</h1>
-    <textarea id="message" rows="4" cols="50" placeholder="Type your mock message here..."></textarea><br>
-    <button onclick="sendMessage()">Send to all clients</button>
+    <div class="container">
+        <div class="header">
+            <h1>WebSocket Server</h1>
+            <p>Manage connections and handle API requests with real-time communication</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Send Message</h2>
+                <textarea id="messageInput" placeholder="Enter message to send to all clients..." rows="4"></textarea>
+                <button class="button" onclick="sendMessage()">Push to All Clients</button>
+            </div>
+
+            <div class="card">
+                <h2>API Response</h2>
+                <div id="apiRequestsContainer">
+                    <p style="color: #CBD5E1; font-style: italic;">No pending API requests</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card full-width">
+            <h2>Messages</h2>
+            <div id="messages" class="messages"></div>
+        </div>
+    </div>
 
     <script>
-        let socket = new WebSocket("ws://" + location.host + "/ws");
+        let ws;
+        let clientCount = 0;
 
-        socket.onopen = function() {
-            console.log("WebSocket connection established.");
-        };
-
-        socket.onmessage = function(event) {
-            console.log("Message from server:", event.data);
-        };
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                addMessage('Connected to server', 'info');
+            };
+            
+            ws.onclose = function() {
+                addMessage('Disconnected from server', 'error');
+                setTimeout(connect, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                addMessage('WebSocket error: ' + error, 'error');
+            };
+            
+            ws.onmessage = function(event) {
+                const message = event.data;
+                
+                if (message.startsWith('CLIENT_CONNECTED:')) {
+                    const clientName = message.substring(17);
+                    addMessage(`Client connected: ${clientName}`, 'client-connected');
+                    clientCount++;
+                } else if (message.startsWith('CLIENT_DISCONNECTED:')) {
+                    const clientName = message.substring(20);
+                    addMessage(`Client disconnected: ${clientName}`, 'client-disconnected');
+                    clientCount--;
+                } else if (message.startsWith('API_REQUEST:')) {
+                    const apiRequestJson = message.substring(12);
+                    handleApiRequest(apiRequestJson);
+                } else {
+                    addMessage('Received: ' + message);
+                }
+            };
+        }
 
         function sendMessage() {
-            const msg = document.getElementById("message").value;
-            socket.send(msg);
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (message && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(message);
+                addMessage('Sent: ' + message);
+                messageInput.value = '';
+            }
         }
+
+        function addMessage(text, type = 'info') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.textContent = `${timestamp}: ${text}`;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function handleApiRequest(apiRequestJson) {
+            try {
+                const apiRequest = JSON.parse(apiRequestJson);
+                addMessage(`API Request: ${apiRequestJson}`, 'api-request');
+                
+                const container = document.getElementById('apiRequestsContainer');
+                container.innerHTML = '';
+                
+                const operationDiv = document.createElement('div');
+                operationDiv.className = 'operation-item';
+                operationDiv.innerHTML = `
+                    <strong style="color: #FFFFFF; font-size: 16px;">Operation: ${apiRequest.operation}</strong>
+                    <div class="operation-data">${JSON.stringify(apiRequest, null, 2)}</div>
+                    <div class="response-section">
+                        <textarea id="responseInput" placeholder="Enter response JSON..." rows="4"></textarea>
+                        <button class="button secondary" onclick="sendApiResponse('${apiRequest.requestId}')">Send Response</button>
+                    </div>
+                `;
+                
+                container.appendChild(operationDiv);
+                
+                // Auto-generate default response
+                const defaultResponse = generateDefaultResponse(apiRequest);
+                document.getElementById('responseInput').value = JSON.stringify(defaultResponse, null, 2);
+                
+            } catch (error) {
+                addMessage(`Error parsing API request: ${error}`, 'error');
+            }
+        }
+
+        function generateDefaultResponse(apiRequest) {
+            const baseResponse = {
+                operation: apiRequest.operation,
+                success: true,
+                message: `${apiRequest.operation} completed successfully`,
+                requestId: apiRequest.requestId
+            };
+
+            switch (apiRequest.operation) {
+                case 'getConfiguration':
+                    return {
+                        ...baseResponse,
+                        data: {
+                            serverVersion: "1.0.0",
+                            maxConnections: "100",
+                            timeout: "30s"
+                        }
+                    };
+                case 'getData':
+                    return {
+                        ...baseResponse,
+                        data: {
+                            items: [
+                                { id: 1, name: "Item 1", value: 100 },
+                                { id: 2, name: "Item 2", value: 200 }
+                            ],
+                            total: 2
+                        }
+                    };
+                case 'subscribe':
+                    return {
+                        ...baseResponse,
+                        data: {
+                            subscriptionId: (apiRequest.data && apiRequest.data.subscriptionId) || 'sub_' + Date.now(),
+                            status: "active"
+                        }
+                    };
+                case 'unsubscribe':
+                    return {
+                        ...baseResponse,
+                        data: {
+                            subscriptionId: (apiRequest.data && apiRequest.data.subscriptionId) || 'unknown',
+                            status: "inactive"
+                        }
+                    };
+                default:
+                    return baseResponse;
+            }
+        }
+
+        function sendApiResponse(requestId) {
+            const responseInput = document.getElementById('responseInput');
+            const responseText = responseInput.value.trim();
+            
+            if (responseText && ws && ws.readyState === WebSocket.OPEN) {
+                try {
+                    const response = JSON.parse(responseText);
+                    ws.send(JSON.stringify(response));
+                    addMessage(`Sent API Response: ${responseText}`, 'api-request');
+                    
+                    // Clear the API requests container
+                    document.getElementById('apiRequestsContainer').innerHTML = 
+                        '<p style="color: #CBD5E1; font-style: italic;">No pending API requests</p>';
+                        
+                } catch (error) {
+                    addMessage(`Error sending API response: ${error}`, 'error');
+                }
+            }
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            connect();
+        };
+
+        // Handle Enter key in message input
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
     </script>
 </body>
 </html>

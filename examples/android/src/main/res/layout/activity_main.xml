@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background_dark"
     android:fillViewport="true"
     tools:context=".MainActivity">
 
@@ -11,145 +12,136 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="24dp">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/serverUrlLayout"
+        <!-- Header Section -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Server URL (e.g., ws://10.0.2.2:8081/ws)">
+            android:orientation="vertical"
+            android:layout_marginBottom="32dp">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/serverUrlInput"
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ws://10.0.2.2:8081/ws" />
+                android:text="WebSocket Client"
+                android:textAppearance="?attr/textAppearanceHeadline3"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
 
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/connectButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Connect" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/statusCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="4dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:text="Connect to servers and manage API operations"
+                android:textAppearance="?attr/textAppearanceBody1"
+                android:textColor="@color/text_secondary"
+                android:alpha="0.8" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Connection Status"
-                    android:textAppearance="?attr/textAppearanceHeadline6" />
+        </LinearLayout>
 
-                <TextView
-                    android:id="@+id/statusText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Disconnected"
-                    android:textAppearance="?attr/textAppearanceBody2"
-                    android:textColor="?android:attr/textColorSecondary" />
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Discovered Servers Section -->
+        <!-- Discovered Servers Card -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/discoveredServersCard"
+            style="@style/Widget.App.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="4dp">
+            android:layout_marginBottom="24dp"
+            android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Discovered Servers"
-                    android:textAppearance="?attr/textAppearanceHeadline6" />
+                    android:textAppearance="?attr/textAppearanceHeadline6"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="20dp" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/discoveredServersRecyclerView"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
-                    android:layout_marginTop="8dp"
-                    android:scrollbars="vertical"
-                    android:fadeScrollbars="false"
-                    android:background="@drawable/messages_background" />
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    tools:listitem="@layout/item_server" />
 
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Send Message Section -->
+        <!-- API Operations Card -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/sendMessageCard"
+            style="@style/Widget.App.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="4dp">
+            android:layout_marginBottom="24dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Send Message"
-                    android:textAppearance="?attr/textAppearanceHeadline6" />
+                    android:text="API Operations"
+                    android:textAppearance="?attr/textAppearanceHeadline6"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="20dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/messageInputLayout"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:hint="Type your message...">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/messageInput"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="textMultiLine"
-                            android:maxLines="3" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
+                    android:orientation="vertical">
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/sendButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="Send" />
+                        android:id="@+id/pingButton"
+                        style="@style/Widget.App.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginBottom="12dp"
+                        android:text="Get Configuration"
+                        app:icon="@drawable/ic_config"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/accent_blue" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/serverInfoButton"
+                        style="@style/Widget.App.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginBottom="12dp"
+                        android:text="Get Data"
+                        app:icon="@drawable/ic_data"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/accent_teal" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/echoButton"
+                        style="@style/Widget.App.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginBottom="12dp"
+                        android:text="Subscribe"
+                        app:icon="@drawable/ic_subscribe"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/accent_purple" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/calculateButton"
+                        style="@style/Widget.App.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="Unsubscribe"
+                        app:icon="@drawable/ic_unsubscribe"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/accent_magenta" />
 
                 </LinearLayout>
 
@@ -157,29 +149,59 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <TextView
-            android:id="@+id/messagesLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Received Messages"
-            android:textAppearance="?attr/textAppearanceHeadline6" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/clearButton"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Clear" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/messagesRecyclerView"
+        <!-- Messages Card -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.App.Card"
             android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:layout_marginTop="8dp"
-            android:scrollbars="vertical"
-            android:fadeScrollbars="false"
-            android:background="@drawable/messages_background" />
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="20dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Messages"
+                        android:textAppearance="?attr/textAppearanceHeadline6"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/clearButton"
+                        style="@style/Widget.App.Button.Secondary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:text="Clear"
+                        android:textSize="12sp"
+                        app:icon="@drawable/ic_clear"
+                        app:iconGravity="textStart"
+                        app:iconSize="16dp" />
+
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/messagesRecyclerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="300dp"
+                    android:nestedScrollingEnabled="true"
+                    android:background="@color/glass_card_light"
+                    android:padding="12dp"
+                    android:clipToPadding="false"
+                    tools:listitem="@layout/item_message" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 

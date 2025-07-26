@@ -27,7 +27,7 @@ class MessagesAdapter : ListAdapter<WebSocketMessage, MessagesAdapter.MessageVie
         
         fun bind(message: WebSocketMessage) {
             binding.messageText.text = message.message
-            binding.timeText.text = message.getFormattedTime()
+            binding.timestampText.text = message.getFormattedTime()
         }
     }
 

@@ -4,6 +4,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -13,14 +14,19 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.*
 import java.net.*
 import java.io.IOException
+import kotlinx.serialization.*
+import kotlinx.serialization.json.*
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: MainViewModel
     private var webSocket: WebSocket? = null
     private lateinit var messagesAdapter: MessagesAdapter
-    private var serverDiscovery: ServerDiscovery? = null
     private lateinit var serverAdapter: ServerAdapter
+    private var serverDiscovery: ServerDiscovery? = null
+    private lateinit var dynamicApiClient: DynamicApiClient
+
 
     companion object {
         private const val TAG = "WebSocketClient"
@@ -32,97 +38,164 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
-        setupRecyclerView()
+        dynamicApiClient = DynamicApiClient()
+        setupRecyclerViews() // Renamed from setupRecyclerView
         setupObservers()
         setupClickListeners()
-        startServerDiscovery()
+        setupApiCallbacks()
+        startServerDiscovery() // Start discovery instead of setDefaultServerUrlAndHint
+        
+
     }
 
-    private fun setupRecyclerView() {
+    private fun setupApiCallbacks() {
+        // Register callbacks for the 4 specific operations
+        dynamicApiClient.registerCallback("getConfiguration", object : ApiCallback {
+            override fun onSuccess(data: Map<String, String>, message: String) {
+                runOnUiThread {
+                    val displayMessage = "✅ Configuration received: $message\nData: $data"
+                    viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis()))
+                    Toast.makeText(this@MainActivity, "Configuration loaded successfully!", Toast.LENGTH_SHORT).show()
+                }
+            }
+            
+            override fun onError(error: String) {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "Configuration error: $error", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
+        
+        dynamicApiClient.registerCallback("getData", object : ApiCallback {
+            override fun onSuccess(data: Map<String, String>, message: String) {
+                runOnUiThread {
+                    val displayMessage = "📊 Data received: $message\nData: $data"
+                    viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis()))
+                    Toast.makeText(this@MainActivity, "Data retrieved successfully!", Toast.LENGTH_SHORT).show()
+                }
+            }
+            
+            override fun onError(error: String) {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "Data error: $error", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
+        
+        dynamicApiClient.registerCallback("subscribe", object : ApiCallback {
+            override fun onSuccess(data: Map<String, String>, message: String) {
+                runOnUiThread {
+                    val subscriptionId = data["subscription_id"] ?: "unknown"
+                    val displayMessage = "🔔 Subscription created: $message\nSubscription ID: $subscriptionId"
+                    viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis()))
+                    Toast.makeText(this@MainActivity, "Subscribed successfully! ID: $subscriptionId", Toast.LENGTH_SHORT).show()
+                }
+            }
+            
+            override fun onError(error: String) {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "Subscription error: $error", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
+        
+        dynamicApiClient.registerCallback("unsubscribe", object : ApiCallback {
+            override fun onSuccess(data: Map<String, String>, message: String) {
+                runOnUiThread {
+                    val displayMessage = "🔕 Unsubscribed: $message\nData: $data"
+                    viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis()))
+                    Toast.makeText(this@MainActivity, "Unsubscribed successfully!", Toast.LENGTH_SHORT).show()
+                }
+            }
+            
+            override fun onError(error: String) {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "Unsubscribe error: $error", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
+    }
+
+    // Renamed and updated to setup both RecyclerViews
+    private fun setupRecyclerViews() {
         try {
             messagesAdapter = MessagesAdapter()
             binding.messagesRecyclerView.apply {
                 layoutManager = LinearLayoutManager(this@MainActivity)
                 adapter = messagesAdapter
             }
-            
+
             serverAdapter = ServerAdapter { server ->
-                connectToDiscoveredServer(server)
+                handleServerClick(server)
             }
             binding.discoveredServersRecyclerView.apply {
                 layoutManager = LinearLayoutManager(this@MainActivity)
                 adapter = serverAdapter
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error setting up RecyclerView", e)
+            Log.e(TAG, "Error setting up RecyclerViews", e)
         }
     }
 
     private fun setupObservers() {
-        try {
-            viewModel.messages.observe(this) { messages ->
-                try {
-                    messagesAdapter.submitList(messages.toList())
-                    binding.messagesRecyclerView.scrollToPosition(messages.size - 1)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error updating messages", e)
-                }
+        viewModel.messages.observe(this) { messages ->
+            messagesAdapter.submitList(messages.toList())
+            if (messages.isNotEmpty()) {
+                binding.messagesRecyclerView.scrollToPosition(messages.size - 1)
             }
-
-            viewModel.connectionStatus.observe(this) { status ->
-                try {
-                    binding.statusText.text = status
-                    updateConnectButton(status)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error updating status", e)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error setting up observers", e)
         }
+
     }
 
     private fun setupClickListeners() {
-        try {
-            binding.connectButton.setOnClickListener {
-                try {
-                    if (webSocket == null) {
-                        connectToWebSocket()
-                    } else {
-                        disconnectFromWebSocket()
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error in connect button click", e)
-                    Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            binding.clearButton.setOnClickListener {
-                try {
-                    viewModel.clearMessages()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error clearing messages", e)
-                }
-            }
-
-            binding.sendButton.setOnClickListener {
-                try {
-                    sendMessage()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error sending message", e)
-                    Toast.makeText(this, "Error sending message: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error setting up click listeners", e)
+        binding.clearButton.setOnClickListener {
+            viewModel.clearMessages()
         }
+
+        // Dynamic API Operation buttons
+        binding.pingButton.setOnClickListener {
+            sendDynamicApiRequest("getConfiguration")
+        }
+        
+        binding.serverInfoButton.setOnClickListener {
+            sendDynamicApiRequest("getData")
+        }
+        
+        binding.echoButton.setOnClickListener {
+            sendDynamicApiRequest("subscribe")
+        }
+        
+        binding.calculateButton.setOnClickListener {
+            sendDynamicApiRequest("unsubscribe")
+        }
+    }
+
+    private fun handleServerClick(server: DiscoveredServer) {
+        if (webSocket == null) {
+            // Not connected, connect to this server
+            connectToServer(server.wsUrl)
+        } else if (currentServerUrl == server.wsUrl) {
+            // Connected to this server, disconnect
+            disconnectFromWebSocket()
+        } else {
+            // Connected to different server, switch to this one
+            disconnectFromWebSocket()
+            connectToServer(server.wsUrl)
+        }
+    }
+ 
+    private var currentServerUrl: String? = null
+ 
+    private fun connectToServer(serverUrl: String) {
+        currentServerUrl = serverUrl
+        connectToWebSocket(serverUrl)
     }
 
     private fun startServerDiscovery() {
         serverDiscovery = ServerDiscovery(
             onServerDiscovered = { _ ->
                 runOnUiThread {
-                    updateDiscoveredServersList()
+                    updateDiscoveredServersList() // Update list when a server is discovered
                 }
             },
             onDiscoveryError = { error ->
@@ -136,8 +209,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateDiscoveredServersList() {
         val servers = serverDiscovery?.getDiscoveredServers() ?: emptyList()
-        serverAdapter.submitList(servers)
-        
+        serverAdapter.submitList(servers) // Submit the list to the adapter
+        serverAdapter.setConnectedServer(currentServerUrl)
+
         if (servers.isNotEmpty()) {
             binding.discoveredServersCard.visibility = android.view.View.VISIBLE
         } else {
@@ -145,70 +219,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun connectToDiscoveredServer(server: DiscoveredServer) {
-        binding.serverUrlInput.setText(server.wsUrl)
-        connectToWebSocket()
-    }
-
-    private fun sendMessage() {
+    private fun sendDynamicApiRequest(operation: String, data: Map<String, String> = emptyMap()) {
         try {
-            val messageText = binding.messageInput.text.toString().trim()
-            if (messageText.isEmpty()) {
-                Toast.makeText(this, "Please enter a message", Toast.LENGTH_SHORT).show()
-                return
-            }
-
-            if (webSocket == null) {
-                Toast.makeText(this, "Not connected to server", Toast.LENGTH_SHORT).show()
-                return
-            }
-
-            Log.d(TAG, "Sending message: $messageText")
-            val success = webSocket?.send(messageText) ?: false
+            val jsonRequest = dynamicApiClient.sendRequest(operation, data)
+            webSocket?.send(jsonRequest)
+            Log.d(TAG, "Sent dynamic API request: $jsonRequest")
             
-            if (success) {
-                // Clear the input field
-                binding.messageInput.text?.clear()
-                Log.d(TAG, "Message sent successfully")
-            } else {
-                Log.e(TAG, "Failed to send message")
-                Toast.makeText(this, "Failed to send message", Toast.LENGTH_SHORT).show()
-            }
+            // Add request to messages
+            val displayMessage = "📤 Sent: $operation"
+            viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis()))
         } catch (e: Exception) {
-            Log.e(TAG, "Error sending message", e)
-            Toast.makeText(this, "Error sending message: ${e.message}", Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "Failed to send dynamic API request", e)
+            Toast.makeText(this, "Failed to send API request: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun connectToWebSocket() {
+    private fun connectToWebSocket(serverUrl: String) {
+        if (serverUrl.isEmpty()) {
+            Toast.makeText(this, "Please enter server URL", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         try {
-            val serverUrl = binding.serverUrlInput.text.toString().trim()
-            Log.d(TAG, "Attempting to connect to: $serverUrl")
-            
-            if (serverUrl.isEmpty()) {
-                Toast.makeText(this, "Please enter a server URL", Toast.LENGTH_SHORT).show()
-                return
-            }
-
-            // Validate URL format
-            if (!serverUrl.startsWith("ws://") && !serverUrl.startsWith("wss://")) {
-                Toast.makeText(this, "Invalid URL format. Must start with ws:// or wss://", Toast.LENGTH_SHORT).show()
-                return
-            }
-
-            viewModel.updateConnectionStatus("Connecting...")
-
             val client = OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
                 .build()
 
             val request = Request.Builder()
                 .url(serverUrl)
                 .build()
 
-            Log.d(TAG, "Creating WebSocket connection...")
             webSocket = client.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     Log.d(TAG, "Connection opened successfully")
@@ -217,12 +259,15 @@ class MainActivity : AppCompatActivity() {
                     Log.d(TAG, "Response headers: ${response.headers}")
                     runOnUiThread {
                         try {
-                            viewModel.updateConnectionStatus("Connected")
+
                             Toast.makeText(this@MainActivity, "Connected to server!", Toast.LENGTH_SHORT).show()
-                            
+
                             // Send a test message to verify the connection
                             Log.d(TAG, "Sending test message to verify connection")
                             webSocket.send("Android app connected")
+                             
+                             // Update the server adapter to show connected state
+                             updateDiscoveredServersList()
                         } catch (e: Exception) {
                             Log.e(TAG, "Error updating UI on connection open", e)
                         }
@@ -235,8 +280,18 @@ class MainActivity : AppCompatActivity() {
                     Log.d(TAG, "Current thread: ${Thread.currentThread().name}")
                     runOnUiThread {
                         try {
-                            Log.d(TAG, "Adding message to ViewModel: $text")
-                            viewModel.addMessage(WebSocketMessage(text, System.currentTimeMillis()))
+                            // Try to parse as API response first
+                            try {
+                                Log.d(TAG, "Attempting to parse as API response")
+                                // Handle with dynamic API client
+                                dynamicApiClient.handleResponse(text)
+                                Log.d(TAG, "Successfully handled as API response")
+                            } catch (e: Exception) {
+                                // Fallback to regular message display
+                                Log.d(TAG, "Not an API response, treating as regular message: ${e.message}")
+                                Log.d(TAG, "Adding message to ViewModel: $text")
+                                viewModel.addMessage(WebSocketMessage(text, System.currentTimeMillis()))
+                            }
                             Log.d(TAG, "Message added successfully")
                         } catch (e: Exception) {
                             Log.e(TAG, "Error adding message", e)
@@ -247,71 +302,49 @@ class MainActivity : AppCompatActivity() {
                 override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
                     Log.d(TAG, "Connection closing: $code - $reason")
                     runOnUiThread {
-                        try {
-                            viewModel.updateConnectionStatus("Disconnected")
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error updating UI on connection closing", e)
-                        }
+                        currentServerUrl = null
+                        updateDiscoveredServersList()
                     }
                 }
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     Log.d(TAG, "Connection closed: $code - $reason")
                     runOnUiThread {
-                        try {
-                            viewModel.updateConnectionStatus("Disconnected")
-                            this@MainActivity.webSocket = null
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error updating UI on connection closed", e)
-                        }
+                        currentServerUrl = null
+                        updateDiscoveredServersList()
                     }
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Log.e(TAG, "Connection failed", t)
                     runOnUiThread {
-                        try {
-                            val errorMessage = "Connection failed: ${t.message}"
-                            viewModel.updateConnectionStatus(errorMessage)
-                            Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_LONG).show()
-                            this@MainActivity.webSocket = null
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error updating UI on connection failure", e)
-                        }
+
+                        Toast.makeText(this@MainActivity, "Connection failed: ${t.message}", Toast.LENGTH_LONG).show()
+                        currentServerUrl = null
+                        updateDiscoveredServersList()
                     }
                 }
             })
+
         } catch (e: Exception) {
-            Log.e(TAG, "Error connecting to WebSocket", e)
-            viewModel.updateConnectionStatus("Error: ${e.message}")
-            Toast.makeText(this, "Error connecting: ${e.message}", Toast.LENGTH_LONG).show()
+            Log.e(TAG, "Error creating WebSocket", e)
+            Toast.makeText(this, "Error creating WebSocket: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun disconnectFromWebSocket() {
-        try {
-            Log.d(TAG, "Disconnecting from WebSocket")
-            webSocket?.close(1000, "User disconnected")
-            webSocket = null
-            viewModel.updateConnectionStatus("Disconnected")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error disconnecting from WebSocket", e)
-        }
-    }
-
-    private fun updateConnectButton(status: String) {
-        try {
-            binding.connectButton.text = if (status == "Connected") "Disconnect" else "Connect"
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating connect button", e)
-        }
+        webSocket?.close(1000, "User disconnected")
+        webSocket = null
+        currentServerUrl = null
+        updateDiscoveredServersList()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         try {
             webSocket?.close(1000, "Activity destroyed")
-            serverDiscovery?.stopDiscovery()
+            serverDiscovery?.stopDiscovery() // Stop discovery on destroy
+            dynamicApiClient.clearCallbacks() // Clear all callbacks
         } catch (e: Exception) {
             Log.e(TAG, "Error closing WebSocket on destroy", e)
         }
