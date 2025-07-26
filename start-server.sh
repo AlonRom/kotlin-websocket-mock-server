@@ -8,7 +8,7 @@ sleep 2
 
 # Start the server in the background
 echo "Starting the server..."
-./gradlew run &
+./gradlew :server:run &
 SERVER_PID=$!
 
 # Wait for server to start
