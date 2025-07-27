@@ -16,14 +16,32 @@ A simple Kotlin WebSocket server built with Ktor that provides a mock WebSocket 
 - Gradle (included via wrapper)
 - Android Studio (for running the Android example)
 
+### Windows Users
+- **Android Studio Terminal/Command Prompt**: Use `start-server.bat`
+- **PowerShell**: Use `.\start-server.ps1` (recommended for better process management)
+- **Git Bash/WSL**: Use `./start-server.sh` (same as macOS/Linux)
+
 ## Quick Start
 
 ### 1. Start the WebSocket Server
 
 #### Option 1: Auto-start with browser (Recommended)
+
+**On macOS/Linux:**
 ```bash
 ./start-server.sh
 ```
+
+**On Windows:**
+```cmd
+start-server.bat
+```
+
+**On Windows (PowerShell):**
+```powershell
+.\start-server.ps1
+```
+
 This will:
 - Free port 8081 if needed
 - Start the server
