@@ -3,13 +3,13 @@
     <!-- Base application theme -->
     <style name="Theme.WebSocketClient" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand colors -->
-        <item name="colorPrimary">@color/accent_blue</item>
+        <item name="colorPrimary">@color/accent_orange</item>
         <item name="colorPrimaryVariant">@color/primary_dark</item>
         <item name="colorOnPrimary">@color/white</item>
         
         <!-- Secondary brand colors -->
-        <item name="colorSecondary">@color/accent_teal</item>
-        <item name="colorSecondaryVariant">@color/accent_light</item>
+        <item name="colorSecondary">@color/accent_orange</item>
+        <item name="colorSecondaryVariant">@color/accent_orange</item>
         <item name="colorOnSecondary">@color/white</item>
         
         <!-- Status bar color -->
@@ -25,50 +25,74 @@
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
         <item name="android:textColorHint">@color/text_hint</item>
+        
+        <!-- Font family -->
+        <item name="android:fontFamily">sans-serif</item>
+        
+        <!-- Button styles -->
+        <item name="materialButtonStyle">@style/Widget.App.Button</item>
     </style>
 
     <!-- Custom button styles -->
     <style name="Widget.App.Button" parent="Widget.Material3.Button">
-        <item name="backgroundTint">@color/accent_blue</item>
+        <item name="backgroundTint">@color/accent_orange</item>
         <item name="android:textColor">@color/white</item>
         <item name="cornerRadius">16dp</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
         <item name="elevation">8dp</item>
+        <item name="rippleColor">@color/accent_orange</item>
+        <item name="strokeColor">@color/accent_orange</item>
+        <item name="iconTint">@color/white</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconSize">20dp</item>
     </style>
 
     <style name="Widget.App.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
-        <item name="strokeColor">@color/accent_blue</item>
-        <item name="android:textColor">@color/accent_blue</item>
+        <item name="strokeColor">@color/accent_orange</item>
+        <item name="android:textColor">@color/accent_orange</item>
         <item name="cornerRadius">16dp</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
         <item name="elevation">4dp</item>
+        <item name="rippleColor">@color/accent_orange</item>
     </style>
 
     <style name="Widget.App.Button.Secondary" parent="Widget.Material3.Button">
-        <item name="backgroundTint">@color/accent_teal</item>
+        <item name="backgroundTint">@color/accent_orange</item>
         <item name="android:textColor">@color/white</item>
         <item name="cornerRadius">16dp</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
         <item name="elevation">8dp</item>
+        <item name="rippleColor">@color/accent_orange</item>
+        <item name="strokeColor">@color/accent_orange</item>
     </style>
 
     <!-- Glass-morphism card style -->
     <style name="Widget.App.Card" parent="Widget.Material3.CardView.Elevated">
-        <item name="cardCornerRadius">20dp</item>
+        <item name="cardCornerRadius">24dp</item>
         <item name="cardElevation">12dp</item>
         <item name="cardBackgroundColor">@color/glass_card</item>
-        <item name="contentPadding">24dp</item>
+        <item name="contentPadding">28dp</item>
+        <item name="strokeColor">@color/divider</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <!-- List item card style for individual items -->
+    <style name="Widget.App.Card.ListItem" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">20dp</item>
+        <item name="cardElevation">8dp</item>
+        <item name="cardBackgroundColor">@color/glass_card</item>
+        <item name="contentPadding">20dp</item>
         <item name="strokeColor">@color/divider</item>
         <item name="strokeWidth">1dp</item>
     </style>
 
     <!-- Text input style -->
     <style name="Widget.App.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxStrokeColor">@color/accent_blue</item>
-        <item name="hintTextColor">@color/accent_blue</item>
+        <item name="boxStrokeColor">@color/accent_orange</item>
+        <item name="hintTextColor">@color/accent_orange</item>
         <item name="cornerRadius">16dp</item>
     </style>
 </resources> 

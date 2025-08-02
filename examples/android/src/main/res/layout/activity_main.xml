@@ -68,8 +68,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:hint="Server URL (e.g., ws://YOUR_IP:8081/ws)"
-                    app:boxStrokeColor="@color/accent_blue"
-                    app:hintTextColor="@color/accent_blue">
+                    app:boxStrokeColor="@color/accent_orange"
+                    app:hintTextColor="@color/accent_orange">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:layout_width="match_parent"
@@ -83,10 +83,8 @@
                     android:id="@+id/connectButton"
                     style="@style/Widget.App.Button"
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:text="Connect"
-                    app:icon="@drawable/ic_config"
-                    app:iconGravity="textStart" />
+                    android:layout_height="48dp"
+                    android:text="Connect" />
 
             </LinearLayout>
 
@@ -152,48 +150,208 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/pingButton"
-                        style="@style/Widget.App.Button.Outlined"
+                    <!-- Get Configuration -->
+                    <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.App.Card.ListItem"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginBottom="12dp"
-                        android:text="Get Configuration"
-                        app:icon="@drawable/ic_config"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/accent_blue" />
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/serverInfoButton"
-                        style="@style/Widget.App.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginBottom="12dp"
-                        android:text="Get Data"
-                        app:icon="@drawable/ic_data"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/accent_teal" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/echoButton"
-                        style="@style/Widget.App.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginBottom="12dp"
-                        android:text="Subscribe"
-                        app:icon="@drawable/ic_subscribe"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/accent_purple" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/calculateButton"
-                        style="@style/Widget.App.Button.Outlined"
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Get Configuration"
+                                    android:textAppearance="?attr/textAppearanceBody1"
+                                    android:textColor="@color/text_primary"
+                                    android:textStyle="bold"
+                                    android:textSize="16sp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Retrieve server configuration"
+                                    android:textAppearance="?attr/textAppearanceCaption"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="14sp" />
+
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/pingButton"
+                                style="@style/Widget.App.Button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="48dp"
+                                android:text="Execute" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Get Data -->
+                    <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.App.Card.ListItem"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:text="Unsubscribe"
-                        app:icon="@drawable/ic_unsubscribe"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/accent_magenta" />
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Get Data"
+                                    android:textAppearance="?attr/textAppearanceBody1"
+                                    android:textColor="@color/text_primary"
+                                    android:textStyle="bold"
+                                    android:textSize="16sp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Fetch data from server"
+                                    android:textAppearance="?attr/textAppearanceCaption"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="14sp" />
+
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/serverInfoButton"
+                                style="@style/Widget.App.Button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="48dp"
+                                android:text="Execute" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Subscribe -->
+                    <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.App.Card.ListItem"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Subscribe"
+                                    android:textAppearance="?attr/textAppearanceBody1"
+                                    android:textColor="@color/text_primary"
+                                    android:textStyle="bold"
+                                    android:textSize="16sp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Subscribe to updates"
+                                    android:textAppearance="?attr/textAppearanceCaption"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="14sp" />
+
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/echoButton"
+                                style="@style/Widget.App.Button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="48dp"
+                                android:text="Execute" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Unsubscribe -->
+                    <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.App.Card.ListItem"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Unsubscribe"
+                                    android:textAppearance="?attr/textAppearanceBody1"
+                                    android:textColor="@color/text_primary"
+                                    android:textStyle="bold"
+                                    android:textSize="16sp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Unsubscribe from updates"
+                                    android:textAppearance="?attr/textAppearanceCaption"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="14sp" />
+
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/calculateButton"
+                                style="@style/Widget.App.Button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="48dp"
+                                android:text="Execute" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
 
                 </LinearLayout>
 
@@ -230,14 +388,10 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/clearButton"
-                        style="@style/Widget.App.Button.Secondary"
+                        style="@style/Widget.App.Button"
                         android:layout_width="wrap_content"
-                        android:layout_height="40dp"
-                        android:text="Clear"
-                        android:textSize="12sp"
-                        app:icon="@drawable/ic_clear"
-                        app:iconGravity="textStart"
-                        app:iconSize="16dp" />
+                        android:layout_height="48dp"
+                        android:text="Clear" />
 
                 </LinearLayout>
 

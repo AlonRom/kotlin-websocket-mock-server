@@ -28,6 +28,12 @@ class MessagesAdapter : ListAdapter<WebSocketMessage, MessagesAdapter.MessageVie
         fun bind(message: WebSocketMessage) {
             binding.messageText.text = message.message
             binding.timestampText.text = message.getFormattedTime()
+            
+            // Set icon based on message type using web icons
+            when (message.type) {
+                MessageType.CLIENT -> binding.messageIcon.text = "👤"
+                MessageType.SERVER -> binding.messageIcon.text = "🗄️"
+            }
         }
     }
 

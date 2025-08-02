@@ -72,8 +72,8 @@ class ServerAdapter(
                 connectButton.setIconTintResource(R.color.white)
             } else {
                 connectButton.text = "Connect"
-                connectButton.setBackgroundColor(itemView.context.getColor(R.color.success))
-                connectButton.setStrokeColorResource(R.color.success)
+                connectButton.setBackgroundColor(itemView.context.getColor(R.color.accent_orange))
+                connectButton.setStrokeColorResource(R.color.accent_orange)
                 connectButton.setIconTintResource(R.color.white)
             }
 

@@ -12,8 +12,8 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: #000000;
             color: #FFFFFF;
             line-height: 1.6;
             min-height: 100vh;
@@ -26,23 +26,20 @@
         }
 
         .header {
-            background: rgba(30, 41, 59, 0.8);
+            background: rgba(26, 26, 26, 0.9);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(100, 116, 139, 0.3);
+            border: 1px solid rgba(58, 58, 58, 0.5);
             border-radius: 24px;
             padding: 32px;
             margin-bottom: 32px;
             text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
 
         .header h1 {
             font-size: 2.5rem;
             font-weight: bold;
-            background: linear-gradient(45deg, #3B82F6, #14B8A6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #FFFFFF;
             margin-bottom: 12px;
         }
 
@@ -60,18 +57,18 @@
         }
 
         .card {
-            background: rgba(30, 41, 59, 0.8);
+            background: rgba(26, 26, 26, 0.9);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(100, 116, 139, 0.3);
+            border: 1px solid rgba(58, 58, 58, 0.5);
             border-radius: 24px;
             padding: 28px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
         }
 
         .card h2 {
@@ -79,21 +76,43 @@
             margin-bottom: 20px;
             font-size: 1.4rem;
             font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 12px;
         }
 
-        .card h2::before {
-            content: '';
-            width: 4px;
-            height: 24px;
-            background: linear-gradient(45deg, #3B82F6, #14B8A6);
-            border-radius: 2px;
+
+
+        .operation-item {
+            background: rgba(42, 42, 42, 0.9);
+            padding: 20px;
+            margin-bottom: 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(58, 58, 58, 0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+
+
+        .operation-content {
+            flex: 1;
+        }
+
+        .operation-title {
+            color: #FFFFFF;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .operation-description {
+            color: #E2E8F0;
+            font-size: 14px;
+            opacity: 0.8;
         }
 
         .button {
-            background: linear-gradient(45deg, #3B82F6, #14B8A6);
+            background: #F97316;
             color: white;
             border: none;
             padding: 14px 28px;
@@ -104,22 +123,15 @@
             margin-right: 12px;
             margin-bottom: 12px;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
         }
 
         .button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
         }
 
-        .button.secondary {
-            background: linear-gradient(45deg, #EC4899, #8B5CF6);
-            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
-        }
 
-        .button.secondary:hover {
-            box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
-        }
 
         .button:disabled {
             background: #64748B;
@@ -131,20 +143,20 @@
         input, textarea {
             width: 100%;
             padding: 16px;
-            border: 2px solid rgba(100, 116, 139, 0.5);
+            border: 2px solid rgba(58, 58, 58, 0.7);
             border-radius: 16px;
             font-size: 14px;
             margin-bottom: 16px;
-            background: rgba(51, 65, 85, 0.8);
+            background: rgba(42, 42, 42, 0.9);
             color: #FFFFFF;
             transition: all 0.3s ease;
         }
 
         input:focus, textarea:focus {
             outline: none;
-            border-color: #3B82F6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            background: rgba(51, 65, 85, 0.9);
+            border-color: #F97316;
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+            background: rgba(42, 42, 42, 1);
         }
 
         input::placeholder, textarea::placeholder {
@@ -154,64 +166,81 @@
         .messages {
             max-height: 500px;
             overflow-y: auto;
-            border: 1px solid rgba(100, 116, 139, 0.3);
+            border: 1px solid rgba(58, 58, 58, 0.5);
             border-radius: 20px;
             padding: 20px;
-            background: rgba(51, 65, 85, 0.6);
+            background: rgba(42, 42, 42, 0.7);
             backdrop-filter: blur(10px);
         }
 
         .message {
-            background: rgba(30, 41, 59, 0.8);
+            background: rgba(26, 26, 26, 0.9);
             padding: 16px;
             margin-bottom: 12px;
             border-radius: 16px;
-            border-left: 4px solid #3B82F6;
             font-family: 'Courier New', monospace;
             font-size: 13px;
             word-wrap: break-word;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .message-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+            color: #9CA3AF;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message-content {
+            flex: 1;
         }
 
         .message.api-request {
             border-left-color: #F97316;
-            background: rgba(30, 41, 59, 0.9);
+            background: rgba(26, 26, 26, 1);
         }
 
         .message.client-connected {
             border-left-color: #10B981;
-            background: rgba(30, 41, 59, 0.9);
+            background: rgba(26, 26, 26, 1);
         }
 
         .message.client-disconnected {
             border-left-color: #EF4444;
-            background: rgba(30, 41, 59, 0.9);
+            background: rgba(26, 26, 26, 1);
         }
 
         .operation-item {
-            background: rgba(51, 65, 85, 0.8);
+            background: rgba(42, 42, 42, 0.9);
             padding: 20px;
             margin-bottom: 16px;
             border-radius: 20px;
-            border: 1px solid rgba(100, 116, 139, 0.3);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(58, 58, 58, 0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         }
 
         .operation-data {
-            background: rgba(30, 41, 59, 0.6);
+            background: rgba(26, 26, 26, 0.7);
             padding: 16px;
             border-radius: 12px;
             margin-top: 12px;
             font-family: 'Courier New', monospace;
             font-size: 12px;
-            border: 1px solid rgba(100, 116, 139, 0.3);
+            border: 1px solid rgba(58, 58, 58, 0.5);
             color: #E2E8F0;
         }
 
         .response-section {
             margin-top: 16px;
             padding-top: 16px;
-            border-top: 1px solid rgba(100, 116, 139, 0.3);
+            border-top: 1px solid rgba(58, 58, 58, 0.5);
         }
 
         .full-width {
@@ -242,17 +271,17 @@
         }
 
         .messages::-webkit-scrollbar-track {
-            background: rgba(51, 65, 85, 0.3);
+            background: rgba(42, 42, 42, 0.3);
             border-radius: 4px;
         }
 
         .messages::-webkit-scrollbar-thumb {
-            background: rgba(100, 116, 139, 0.5);
+            background: rgba(58, 58, 58, 0.5);
             border-radius: 4px;
         }
 
         .messages::-webkit-scrollbar-thumb:hover {
-            background: rgba(100, 116, 139, 0.7);
+            background: rgba(58, 58, 58, 0.7);
         }
     </style>
 </head>
@@ -261,8 +290,8 @@
         <div class="header">
             <h1>WebSocket Server</h1>
             <p>Manage connections and handle API requests with real-time communication</p>
-            <div style="margin-top: 16px; padding: 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px;">
-                <strong style="color: #3B82F6;">WebSocket Server URL:</strong>
+            <div style="margin-top: 16px; padding: 12px; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 12px;">
+                <strong style="color: #F97316;">WebSocket Server URL:</strong>
                 <div style="font-family: 'Courier New', monospace; color: #E2E8F0; margin-top: 4px; word-break: break-all;" id="serverUrlDisplay">
                     ws://<span id="serverHost">localhost</span>:8081/ws
                     <div id="ipLoadingIndicator" style="display: inline-block; margin-left: 8px;">
@@ -289,8 +318,8 @@
 
         <div class="card full-width">
             <h2 style="display: flex; justify-content: space-between; align-items: center;">
-                Messages
-                <button class="button" style="padding: 8px 16px; font-size: 0.9rem;" onclick="clearMessages()">Clear Messages</button>
+                <span>Messages</span>
+                <button class="button" onclick="clearMessages()">Clear Messages</button>
             </h2>
             <div id="messages" class="messages"></div>
         </div>
@@ -307,16 +336,16 @@
             ws = new WebSocket(wsUrl);
             
             ws.onopen = function() {
-                addMessage('Connected to server', 'info');
+                addMessage('Web Client: Connected to server', 'info');
             };
             
             ws.onclose = function() {
-                addMessage('Disconnected from server', 'error');
+                addMessage('Web Client: Disconnected from server', 'error');
                 setTimeout(connect, 3000);
             };
             
             ws.onerror = function(error) {
-                addMessage('WebSocket error: ' + error, 'error');
+                addMessage('Web Client: WebSocket error: ' + error, 'error');
             };
             
             ws.onmessage = function(event) {
@@ -324,11 +353,11 @@
                 
                 if (message.startsWith('CLIENT_CONNECTED:')) {
                     const clientName = message.substring(17);
-                    addMessage(`Client connected: ${clientName}`, 'client-connected');
+                    addMessage(`Server Received: Client connected: ${clientName}`, 'client-connected');
                     clientCount++;
                 } else if (message.startsWith('CLIENT_DISCONNECTED:')) {
                     const clientName = message.substring(20);
-                    addMessage(`Client disconnected: ${clientName}`, 'client-disconnected');
+                    addMessage(`Server Received: Client disconnected: ${clientName}`, 'client-disconnected');
                     clientCount--;
                 } else if (message.startsWith('API_REQUEST:')) {
                     const apiRequestJson = message.substring(12);
@@ -337,7 +366,7 @@
                     const serverIp = message.substring(10);
                     updateServerUrlDisplay(serverIp);
                 } else {
-                    addMessage('Received: ' + message);
+                    addMessage('Server Received: ' + message);
                 }
             };
         }
@@ -348,7 +377,7 @@
             
             if (message && ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(message);
-                addMessage('Sent: ' + message);
+                addMessage('Client Sent: ' + message);
                 messageInput.value = '';
             }
         }
@@ -358,8 +387,29 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
             
-            const timestamp = new Date().toLocaleTimeString();
-            messageDiv.textContent = `${timestamp}: ${text}`;
+            const timestamp = new Date().toLocaleTimeString('en-US', { 
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            // Determine icon based on message type and content
+            let icon = '🗄️'; // default server icon
+            if (type === 'api-request') {
+                icon = '👤'; // client icon for API requests
+            } else if (text.startsWith('Server Sent:')) {
+                icon = '👤'; // client icon for server sent messages
+            } else if (text.startsWith('Client Sent:')) {
+                icon = '👤'; // client icon for client sent messages
+            } else if (text.startsWith('Server Received:')) {
+                icon = '🗄️'; // server icon for server received messages
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-icon">${icon}</div>
+                <div class="message-content">${timestamp}: ${text}</div>
+            `;
             
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -368,7 +418,7 @@
         function handleApiRequest(apiRequestJson) {
             try {
                 const apiRequest = JSON.parse(apiRequestJson);
-                addMessage(`API Request: ${apiRequestJson}`, 'api-request');
+                addMessage(`Client Sent: API Request: ${apiRequestJson}`, 'api-request');
                 
                 const container = document.getElementById('apiRequestsContainer');
                 container.innerHTML = '';
@@ -376,11 +426,14 @@
                 const operationDiv = document.createElement('div');
                 operationDiv.className = 'operation-item';
                 operationDiv.innerHTML = `
-                    <strong style="color: #FFFFFF; font-size: 16px;">Operation: ${apiRequest.operation}</strong>
+                    <div class="operation-content">
+                        <div class="operation-title">${apiRequest.operation}</div>
+                        <div class="operation-description">API Request from client</div>
+                    </div>
                     <div class="operation-data">${JSON.stringify(apiRequest, null, 2)}</div>
                     <div class="response-section">
                         <textarea id="responseInput" placeholder="Enter response JSON..." rows="4"></textarea>
-                        <button class="button secondary" onclick="sendApiResponse('${apiRequest.requestId}')">Send Response</button>
+                        <button class="button" onclick="sendApiResponse('${apiRequest.requestId}')">Send Response</button>
                     </div>
                 `;
                 
@@ -391,7 +444,7 @@
                 document.getElementById('responseInput').value = JSON.stringify(defaultResponse, null, 2);
                 
             } catch (error) {
-                addMessage(`Error parsing API request: ${error}`, 'error');
+                addMessage(`Server Sent: Error parsing API request: ${error}`, 'error');
             }
         }
 
@@ -453,14 +506,14 @@
                 try {
                     const response = JSON.parse(responseText);
                     ws.send(JSON.stringify(response));
-                    addMessage(`Sent API Response: ${responseText}`, 'api-request');
+                    addMessage(`Server Sent: API Response: ${responseText}`, 'api-request');
                     
                     // Clear the API requests container
                     document.getElementById('apiRequestsContainer').innerHTML = 
                         '<p style="color: #CBD5E1; font-style: italic;">No pending API requests</p>';
                         
                 } catch (error) {
-                    addMessage(`Error sending API response: ${error}`, 'error');
+                    addMessage(`Server Sent: Error sending API response: ${error}`, 'error');
                 }
             }
         }
@@ -525,7 +578,6 @@
         function clearMessages() {
             const messagesDiv = document.getElementById('messages');
             messagesDiv.innerHTML = ''; // Clear all messages
-            addMessage('Messages cleared.', 'info');
         }
 
         // Handle Enter key in message input

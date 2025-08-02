@@ -2,28 +2,27 @@
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.App.Card.ListItem"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="6dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="6dp"
-    app:cardBackgroundColor="@color/glass_card"
-    app:strokeColor="@color/divider"
-    app:strokeWidth="1dp">
+    android:layout_margin="6dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
         android:gravity="center_vertical">
 
-        <!-- Status indicator with vibrant colors -->
-        <View
-            android:layout_width="4dp"
-            android:layout_height="40dp"
-            android:background="@color/accent_blue"
-            android:layout_marginEnd="16dp" />
+        <!-- Message type icon -->
+        <TextView
+            android:id="@+id/messageIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="16dp"
+            android:text="👤"
+            android:textSize="20sp"
+            android:gravity="center"
+            android:textColor="@color/accent_orange" />
 
         <!-- Message content -->
         <LinearLayout
@@ -39,6 +38,8 @@
                 android:text="Message content here"
                 android:textAppearance="?attr/textAppearanceBody2"
                 android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold"
                 android:layout_marginBottom="8dp"
                 android:lineSpacingExtra="2dp" />
 
@@ -48,8 +49,8 @@
                 android:layout_height="wrap_content"
                 android:text="12:34:56"
                 android:textAppearance="?attr/textAppearanceCaption"
-                android:textColor="@color/text_muted"
-                android:textSize="12sp" />
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
 
         </LinearLayout>
 
