@@ -43,9 +43,27 @@ class MainActivity : AppCompatActivity() {
         setupObservers()
         setupClickListeners()
         setupApiCallbacks()
-        startServerDiscovery() // Start discovery instead of setDefaultServerUrlAndHint
-        
 
+        // Prefill manual connect field if running in emulator
+        if (isEmulator()) {
+            binding.serverUrlInput.editText?.setText("ws://10.0.2.2:8081/ws")
+        }
+
+        startServerDiscovery() // Start discovery instead of setDefaultServerUrlAndHint
+    }
+
+    private fun isEmulator(): Boolean {
+        return try {
+            val buildConfig = android.os.Build::class.java.getField("FINGERPRINT").get(null) as String
+            buildConfig.contains("generic") ||
+            buildConfig.contains("sdk") ||
+            buildConfig.contains("google_sdk") ||
+            buildConfig.contains("Emulator") ||
+            buildConfig.contains("Android SDK")
+        } catch (e: Exception) {
+            Log.d("MainActivity", "Error detecting emulator: ${e.message}")
+            false
+        }
     }
 
     private fun setupApiCallbacks() {
@@ -71,6 +89,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     val displayMessage = "📊 Data received: $message\nData: $data"
                     viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis()))
+
                     Toast.makeText(this@MainActivity, "Data retrieved successfully!", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -152,6 +171,22 @@ class MainActivity : AppCompatActivity() {
             viewModel.clearMessages()
         }
 
+        // Manual connection toggle button
+        binding.connectButton.setOnClickListener {
+            if (webSocket == null) {
+                // Not connected, try to connect
+                val serverUrl = binding.serverUrlInput.editText?.text?.toString()?.trim()
+                if (!serverUrl.isNullOrEmpty()) {
+                    connectToServer(serverUrl)
+                } else {
+                    Toast.makeText(this, "Please enter server URL", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                // Connected, disconnect
+                disconnectFromWebSocket()
+            }
+        }
+
         // Dynamic API Operation buttons
         binding.pingButton.setOnClickListener {
             sendDynamicApiRequest("getConfiguration")
@@ -193,14 +228,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun startServerDiscovery() {
         serverDiscovery = ServerDiscovery(
-            onServerDiscovered = { _ ->
+            onServerDiscovered = { server ->
                 runOnUiThread {
+                    Log.d(TAG, "Server discovered callback triggered: ${server.name}")
                     updateDiscoveredServersList() // Update list when a server is discovered
+                    Log.d(TAG, "Server discovered via ${server.discoveryMethod}: ${server.name}")
                 }
             },
             onDiscoveryError = { error ->
                 runOnUiThread {
-                    Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                    Log.w(TAG, "Server discovery error: $error")
+                    // Don't show error toast for discovery failures
                 }
             }
         )
@@ -209,13 +247,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateDiscoveredServersList() {
         val servers = serverDiscovery?.getDiscoveredServers() ?: emptyList()
+        Log.d(TAG, "Updating discovered servers list: ${servers.size} servers")
+        servers.forEach { server ->
+            Log.d(TAG, "Server in list: ${server.name} (${server.wsUrl}) via ${server.discoveryMethod}")
+        }
+        
+        Log.d(TAG, "Submitting list to adapter with ${servers.size} servers")
         serverAdapter.submitList(servers) // Submit the list to the adapter
         serverAdapter.setConnectedServer(currentServerUrl)
 
         if (servers.isNotEmpty()) {
+            Log.d(TAG, "Showing discovered servers card - servers count: ${servers.size}")
             binding.discoveredServersCard.visibility = android.view.View.VISIBLE
+            Log.d(TAG, "Card visibility set to VISIBLE")
         } else {
+            Log.d(TAG, "Hiding discovered servers card - no servers")
             binding.discoveredServersCard.visibility = android.view.View.GONE
+            Log.d(TAG, "Card visibility set to GONE")
         }
     }
 
@@ -226,7 +274,7 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "Sent dynamic API request: $jsonRequest")
             
             // Add request to messages
-            val displayMessage = "📤 Sent: $operation"
+            val displayMessage = " Sent: $operation"
             viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis()))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send dynamic API request", e)
@@ -238,6 +286,12 @@ class MainActivity : AppCompatActivity() {
         if (serverUrl.isEmpty()) {
             Toast.makeText(this, "Please enter server URL", Toast.LENGTH_SHORT).show()
             return
+        }
+
+        // Show connecting state
+        runOnUiThread {
+            binding.connectButton.text = "Connecting..."
+            binding.connectButton.isEnabled = false
         }
 
         try {
@@ -259,15 +313,15 @@ class MainActivity : AppCompatActivity() {
                     Log.d(TAG, "Response headers: ${response.headers}")
                     runOnUiThread {
                         try {
-
                             Toast.makeText(this@MainActivity, "Connected to server!", Toast.LENGTH_SHORT).show()
 
                             // Send a test message to verify the connection
                             Log.d(TAG, "Sending test message to verify connection")
                             webSocket.send("Android app connected")
                              
-                             // Update the server adapter to show connected state
-                             updateDiscoveredServersList()
+                            // Update the server adapter to show connected state
+                            updateDiscoveredServersList()
+                            updateConnectButtonState()
                         } catch (e: Exception) {
                             Log.e(TAG, "Error updating UI on connection open", e)
                         }
@@ -302,26 +356,38 @@ class MainActivity : AppCompatActivity() {
                 override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
                     Log.d(TAG, "Connection closing: $code - $reason")
                     runOnUiThread {
+                        this@MainActivity.webSocket = null // Clear the WebSocket
                         currentServerUrl = null
                         updateDiscoveredServersList()
+                        updateConnectButtonState() // Update button state
                     }
                 }
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     Log.d(TAG, "Connection closed: $code - $reason")
                     runOnUiThread {
+                        this@MainActivity.webSocket = null // Clear the WebSocket
                         currentServerUrl = null
                         updateDiscoveredServersList()
+                        updateConnectButtonState()
                     }
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Log.e(TAG, "Connection failed", t)
                     runOnUiThread {
-
-                        Toast.makeText(this@MainActivity, "Connection failed: ${t.message}", Toast.LENGTH_LONG).show()
+                        // Show a more user-friendly error message
+                        val errorMessage = when {
+                            t.message?.contains("ENETUNREACH") == true -> "Server not reachable. Check if server is running and IP is correct."
+                            t.message?.contains("timeout") == true -> "Connection timeout. Server may be unreachable."
+                            else -> "Connection failed: ${t.message}"
+                        }
+                        Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_LONG).show()
+                        
+                        this@MainActivity.webSocket = null // Clear the failed WebSocket
                         currentServerUrl = null
                         updateDiscoveredServersList()
+                        updateConnectButtonState() // Re-enable the button
                     }
                 }
             })
@@ -329,7 +395,21 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "Error creating WebSocket", e)
             Toast.makeText(this, "Error creating WebSocket: ${e.message}", Toast.LENGTH_LONG).show()
+            runOnUiThread {
+                updateConnectButtonState() // Re-enable the button on error
+            }
         }
+    }
+
+    private fun updateConnectButtonState() {
+        if (webSocket != null) {
+            binding.connectButton.text = "Disconnect"
+            binding.connectButton.icon = getDrawable(R.drawable.ic_unsubscribe)
+        } else {
+            binding.connectButton.text = "Connect"
+            binding.connectButton.icon = getDrawable(R.drawable.ic_config)
+        }
+        binding.connectButton.isEnabled = true
     }
 
     private fun disconnectFromWebSocket() {
@@ -337,6 +417,7 @@ class MainActivity : AppCompatActivity() {
         webSocket = null
         currentServerUrl = null
         updateDiscoveredServersList()
+        updateConnectButtonState()
     }
 
     override fun onDestroy() {

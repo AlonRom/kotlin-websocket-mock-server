@@ -13,11 +13,31 @@ class ServerAdapter(
     private val onServerClick: (DiscoveredServer) -> Unit
 ) : ListAdapter<DiscoveredServer, ServerAdapter.ServerViewHolder>(ServerDiffCallback()) {
 
+    override fun submitList(list: List<DiscoveredServer>?) {
+        android.util.Log.d("ServerAdapter", "submitList called with ${list?.size ?: 0} servers")
+        super.submitList(list)
+    }
+
     private var connectedServerUrl: String? = null
 
     fun setConnectedServer(url: String?) {
+        val oldConnectedUrl = connectedServerUrl
         connectedServerUrl = url
-        notifyDataSetChanged()
+        
+        // Only notify if the connected server actually changed
+        if (oldConnectedUrl != url) {
+            // Find the positions of the old and new connected servers
+            val oldPosition = currentList.indexOfFirst { it.wsUrl == oldConnectedUrl }
+            val newPosition = currentList.indexOfFirst { it.wsUrl == url }
+            
+            // Notify only the specific items that changed
+            if (oldPosition != -1) {
+                notifyItemChanged(oldPosition)
+            }
+            if (newPosition != -1) {
+                notifyItemChanged(newPosition)
+            }
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ServerViewHolder {
@@ -28,6 +48,7 @@ class ServerAdapter(
 
     override fun onBindViewHolder(holder: ServerViewHolder, position: Int) {
         val server = getItem(position)
+        android.util.Log.d("ServerAdapter", "Binding server at position $position: ${server.name}")
         holder.bind(server, connectedServerUrl == server.wsUrl)
     }
 

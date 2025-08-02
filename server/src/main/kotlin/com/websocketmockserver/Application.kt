@@ -251,20 +251,35 @@ fun main() {
                             
                             // Only process further if message wasn't handled as API request or response
                             if (!messageHandled) {
-                                // Handle regular messages (from web UI push messages or other clients)
-                                println("Received regular message: $receivedText")
-                                println("Broadcasting: $receivedText")
-                                
-                                // Broadcast to all other connected clients (including Android apps)
-                                val broadcastMessage = "Server: $receivedText"
-                                println("Broadcasting: $broadcastMessage")
-                                connectedClients.forEach { client ->
-                                    if (client != this) {
+                                // Handle special messages
+                                when (receivedText) {
+                                    "GET_SERVER_IP" -> {
+                                        val localIp = getLocalIpAddress().orEmpty().ifBlank { "127.0.0.1" }
+                                        val response = "SERVER_IP:$localIp"
                                         try {
-                                            client.send(broadcastMessage)
-                                            println("Successfully broadcasted to client")
+                                            this.send(response)
+                                            println("Sent server IP: $localIp")
                                         } catch (e: Exception) {
-                                            println("Failed to send to client: $e")
+                                            println("Failed to send server IP: $e")
+                                        }
+                                    }
+                                    else -> {
+                                        // Handle regular messages (from web UI push messages or other clients)
+                                        println("Received regular message: $receivedText")
+                                        println("Broadcasting: $receivedText")
+                                        
+                                        // Broadcast to all other connected clients (including Android apps)
+                                        val broadcastMessage = "Server: $receivedText"
+                                        println("Broadcasting: $broadcastMessage")
+                                        connectedClients.forEach { client ->
+                                            if (client != this) {
+                                                try {
+                                                    client.send(broadcastMessage)
+                                                    println("Successfully broadcasted to client")
+                                                } catch (e: Exception) {
+                                                    println("Failed to send to client: $e")
+                                                }
+                                            }
                                         }
                                     }
                                 }

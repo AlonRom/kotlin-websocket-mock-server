@@ -261,6 +261,15 @@
         <div class="header">
             <h1>WebSocket Server</h1>
             <p>Manage connections and handle API requests with real-time communication</p>
+            <div style="margin-top: 16px; padding: 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px;">
+                <strong style="color: #3B82F6;">WebSocket Server URL:</strong>
+                <div style="font-family: 'Courier New', monospace; color: #E2E8F0; margin-top: 4px; word-break: break-all;" id="serverUrlDisplay">
+                    ws://<span id="serverHost">localhost</span>:8081/ws
+                    <div id="ipLoadingIndicator" style="display: inline-block; margin-left: 8px;">
+                        <span style="color: #F59E0B;">⏳ Detecting IP...</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="grid">
@@ -279,7 +288,10 @@
         </div>
 
         <div class="card full-width">
-            <h2>Messages</h2>
+            <h2 style="display: flex; justify-content: space-between; align-items: center;">
+                Messages
+                <button class="button" style="padding: 8px 16px; font-size: 0.9rem;" onclick="clearMessages()">Clear Messages</button>
+            </h2>
             <div id="messages" class="messages"></div>
         </div>
     </div>
@@ -321,6 +333,9 @@
                 } else if (message.startsWith('API_REQUEST:')) {
                     const apiRequestJson = message.substring(12);
                     handleApiRequest(apiRequestJson);
+                } else if (message.startsWith('SERVER_IP:')) {
+                    const serverIp = message.substring(10);
+                    updateServerUrlDisplay(serverIp);
                 } else {
                     addMessage('Received: ' + message);
                 }
@@ -452,8 +467,66 @@
 
         // Auto-connect on page load
         window.onload = function() {
+            // Request server IP address from the server
+            requestServerIpAddress();
             connect();
         };
+
+        let ipRequestTimeout;
+        
+        function requestServerIpAddress() {
+            // Send a special message to request the server's IP address
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('GET_SERVER_IP');
+                
+                // Set a timeout in case the request fails
+                ipRequestTimeout = setTimeout(() => {
+                    const loadingIndicator = document.getElementById('ipLoadingIndicator');
+                    if (loadingIndicator) {
+                        loadingIndicator.innerHTML = '<span style="color: #EF4444;">❌ IP detection failed</span>';
+                    }
+                }, 10000); // 10 second timeout
+            } else {
+                // If WebSocket isn't ready yet, wait a bit and try again
+                setTimeout(requestServerIpAddress, 1000);
+            }
+        }
+
+        function updateServerUrlDisplay(serverIp) {
+            // Clear the timeout since we got the IP
+            if (ipRequestTimeout) {
+                clearTimeout(ipRequestTimeout);
+                ipRequestTimeout = null;
+            }
+            
+            document.getElementById('serverHost').textContent = serverIp;
+            
+            // Hide the loading indicator
+            const loadingIndicator = document.getElementById('ipLoadingIndicator');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+            
+            // Add a success indicator briefly
+            const urlDisplay = document.getElementById('serverUrlDisplay');
+            const successDiv = document.createElement('div');
+            successDiv.style.cssText = 'display: inline-block; margin-left: 8px; color: #10B981; font-size: 12px;';
+            successDiv.textContent = '✅ IP detected';
+            urlDisplay.appendChild(successDiv);
+            
+            // Remove success indicator after 3 seconds
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.remove();
+                }
+            }, 3000);
+        }
+
+        function clearMessages() {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = ''; // Clear all messages
+            addMessage('Messages cleared.', 'info');
+        }
 
         // Handle Enter key in message input
         document.getElementById('messageInput').addEventListener('keypress', function(e) {
