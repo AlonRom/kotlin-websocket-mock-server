@@ -163,7 +163,7 @@ fun main() {
                 connectedClients.add(this) // Track connected clients
                  
                  // Notify web UI about new client connection
-                 val connectionMessage = "CLIENT_CONNECTED:Android Client"
+                 val connectionMessage = "CLIENT_CONNECTED:Client"
                  connectedClients.forEach { client ->
                      if (client != this) {
                          try {
@@ -269,7 +269,7 @@ fun main() {
                                         println("Broadcasting: $receivedText")
                                         
                                         // Broadcast to all other connected clients (including Android apps)
-                                        val broadcastMessage = "Server: $receivedText"
+                                        val broadcastMessage = receivedText
                                         println("Broadcasting: $broadcastMessage")
                                         connectedClients.forEach { client ->
                                             if (client != this) {
@@ -297,8 +297,10 @@ fun main() {
                          println("Cleaned up pending request: $requestId")
                      }
                      
-                    // Notify web UI about client disconnection
-                    val disconnectionMessage = "CLIENT_DISCONNECTED:Android Client"
+                    // Notify web UI about client disconnection (only send to web UI, not Android clients)
+                    val disconnectionMessage = "CLIENT_DISCONNECTED:Client"
+                    // Note: In a real implementation, you'd need to identify web UI clients
+                    // For now, we'll send to all clients but Android should ignore these internal messages
                     connectedClients.forEach { client ->
                         try {
                             client.send(disconnectionMessage)

@@ -69,9 +69,9 @@ class MainActivity : AppCompatActivity() {
     private fun setupApiCallbacks() {
         // Register callbacks for the 4 specific operations
         dynamicApiClient.registerCallback("getConfiguration", object : ApiCallback {
-                            override fun onSuccess(data: Map<String, String>, message: String) {
+            override fun onSuccess(data: Map<String, String>, message: String) {
                 runOnUiThread {
-                    val displayMessage = "Server Received: Configuration received: $message\nData: $data"
+                    val displayMessage = "Server sent: Configuration received $message"
                     viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis(), MessageType.SERVER))
                     Toast.makeText(this@MainActivity, "Configuration loaded successfully!", Toast.LENGTH_SHORT).show()
                 }
@@ -85,9 +85,9 @@ class MainActivity : AppCompatActivity() {
         })
         
         dynamicApiClient.registerCallback("getData", object : ApiCallback {
-                            override fun onSuccess(data: Map<String, String>, message: String) {
+            override fun onSuccess(data: Map<String, String>, message: String) {
                 runOnUiThread {
-                    val displayMessage = "Server Received: Data received: $message\nData: $data"
+                    val displayMessage = "Server sent: Data received $message"
                     viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis(), MessageType.SERVER))
 
                     Toast.makeText(this@MainActivity, "Data retrieved successfully!", Toast.LENGTH_SHORT).show()
@@ -102,10 +102,10 @@ class MainActivity : AppCompatActivity() {
         })
         
         dynamicApiClient.registerCallback("subscribe", object : ApiCallback {
-                            override fun onSuccess(data: Map<String, String>, message: String) {
+            override fun onSuccess(data: Map<String, String>, message: String) {
                 runOnUiThread {
                     val subscriptionId = data["subscription_id"] ?: "unknown"
-                    val displayMessage = "Server Received: Subscription created: $message\nSubscription ID: $subscriptionId"
+                    val displayMessage = "Server sent: Subscription created $message"
                     viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis(), MessageType.SERVER))
                     Toast.makeText(this@MainActivity, "Subscribed successfully! ID: $subscriptionId", Toast.LENGTH_SHORT).show()
                 }
@@ -119,9 +119,9 @@ class MainActivity : AppCompatActivity() {
         })
         
         dynamicApiClient.registerCallback("unsubscribe", object : ApiCallback {
-                            override fun onSuccess(data: Map<String, String>, message: String) {
+            override fun onSuccess(data: Map<String, String>, message: String) {
                 runOnUiThread {
-                    val displayMessage = "Server Received: Unsubscribed: $message\nData: $data"
+                    val displayMessage = "Server sent: Unsubscribed $message"
                     viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis(), MessageType.SERVER))
                     Toast.makeText(this@MainActivity, "Unsubscribed successfully!", Toast.LENGTH_SHORT).show()
                 }
@@ -315,10 +315,9 @@ class MainActivity : AppCompatActivity() {
                         try {
                             Toast.makeText(this@MainActivity, "Connected to server!", Toast.LENGTH_SHORT).show()
 
-                            // Send a test message to verify the connection
-                            Log.d(TAG, "Sending test message to verify connection")
-                            // Connection established successfully
-                             
+                            // Add connection message
+                            viewModel.addMessage(WebSocketMessage("Client status: Connected to server", System.currentTimeMillis(), MessageType.CLIENT))
+                            
                             // Update the server adapter to show connected state
                             updateDiscoveredServersList()
                             updateConnectButtonState()
@@ -345,7 +344,16 @@ class MainActivity : AppCompatActivity() {
                                 // Fallback to regular message display
                                 Log.d(TAG, "Not an API response, treating as regular message: ${e.message}")
                                 Log.d(TAG, "Adding message to ViewModel: $text")
-                                viewModel.addMessage(WebSocketMessage("Server Received: $text", System.currentTimeMillis(), MessageType.SERVER))
+                                
+                                // Handle internal server status messages
+                                if (text.startsWith("CLIENT_DISCONNECTED:")) {
+                                    // Server is reporting that another client disconnected
+                                    // This could indicate server issues, so show a status
+                                    viewModel.addMessage(WebSocketMessage("Client status: Server connection lost", System.currentTimeMillis(), MessageType.CLIENT))
+                                } else if (!text.startsWith("CLIENT_CONNECTED:")) {
+                                    // Regular message from server
+                                    viewModel.addMessage(WebSocketMessage("Server sent: $text", System.currentTimeMillis(), MessageType.SERVER))
+                                }
                             }
                             Log.d(TAG, "Message added successfully")
                         } catch (e: Exception) {
@@ -369,6 +377,7 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread {
                         this@MainActivity.webSocket = null // Clear the WebSocket
                         currentServerUrl = null
+                        viewModel.addMessage(WebSocketMessage("Client status: Disconnected from server", System.currentTimeMillis(), MessageType.CLIENT))
                         updateDiscoveredServersList()
                         updateConnectButtonState()
                         updateManualConnectionUrl(null)
@@ -382,12 +391,13 @@ class MainActivity : AppCompatActivity() {
                         val errorMessage = when {
                             t.message?.contains("ENETUNREACH") == true -> "Server not reachable. Check if server is running and IP is correct."
                             t.message?.contains("timeout") == true -> "Connection timeout. Server may be unreachable."
-                            else -> "Connection failed: ${t.message}"
+                            else -> "Connection failed: ${t.message ?: "Unknown error"}"
                         }
                         Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_LONG).show()
                         
                         this@MainActivity.webSocket = null // Clear the failed WebSocket
                         currentServerUrl = null
+                        viewModel.addMessage(WebSocketMessage("Client status: Connection failed ${t.message ?: "Unknown error"}", System.currentTimeMillis(), MessageType.CLIENT))
                         updateDiscoveredServersList()
                         updateConnectButtonState() // Re-enable the button
                         updateManualConnectionUrl(null)
@@ -397,7 +407,7 @@ class MainActivity : AppCompatActivity() {
 
         } catch (e: Exception) {
             Log.e(TAG, "Error creating WebSocket", e)
-            Toast.makeText(this, "Error creating WebSocket: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Error creating WebSocket: ${e.message ?: "Unknown error"}", Toast.LENGTH_LONG).show()
             runOnUiThread {
                 updateConnectButtonState() // Re-enable the button on error
             }

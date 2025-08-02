@@ -25,7 +25,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="WebSocket Client"
-                android:textAppearance="?attr/textAppearanceHeadline3"
+                android:textAppearance="?attr/textAppearanceHeadline4"
                 android:textColor="@color/text_primary"
                 android:textStyle="bold"
                 android:layout_marginBottom="12dp" />

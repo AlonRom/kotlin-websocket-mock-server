@@ -290,7 +290,7 @@
         <div class="header">
             <h1>WebSocket Server</h1>
             <p>Manage connections and handle API requests with real-time communication</p>
-            <div style="margin-top: 16px; padding: 12px; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 12px;">
+                            <div style="margin-top: 16px; padding: 12px; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 12px;">
                 <strong style="color: #F97316;">WebSocket Server URL:</strong>
                 <div style="font-family: 'Courier New', monospace; color: #E2E8F0; margin-top: 4px; word-break: break-all;" id="serverUrlDisplay">
                     ws://<span id="serverHost">localhost</span>:8081/ws
@@ -336,28 +336,26 @@
             ws = new WebSocket(wsUrl);
             
             ws.onopen = function() {
-                addMessage('Web Client: Connected to server', 'info');
+                console.log('Server: Connected to WebSocket');
             };
             
             ws.onclose = function() {
-                addMessage('Web Client: Disconnected from server', 'error');
+                console.log('Server: Disconnected from WebSocket');
                 setTimeout(connect, 3000);
             };
             
             ws.onerror = function(error) {
-                addMessage('Web Client: WebSocket error: ' + error, 'error');
+                console.log('Server: WebSocket error:', error);
             };
             
             ws.onmessage = function(event) {
                 const message = event.data;
                 
                 if (message.startsWith('CLIENT_CONNECTED:')) {
-                    const clientName = message.substring(17);
-                    addMessage(`Server Received: Client connected: ${clientName}`, 'client-connected');
+                    addMessage('Server status: Client connected', 'client-connected');
                     clientCount++;
                 } else if (message.startsWith('CLIENT_DISCONNECTED:')) {
-                    const clientName = message.substring(20);
-                    addMessage(`Server Received: Client disconnected: ${clientName}`, 'client-disconnected');
+                    addMessage('Server status: Client disconnected', 'client-disconnected');
                     clientCount--;
                 } else if (message.startsWith('API_REQUEST:')) {
                     const apiRequestJson = message.substring(12);
@@ -366,7 +364,7 @@
                     const serverIp = message.substring(10);
                     updateServerUrlDisplay(serverIp);
                 } else {
-                    addMessage('Server Received: ' + message);
+                    addMessage(`Client sent: ${message}`);
                 }
             };
         }
@@ -377,7 +375,7 @@
             
             if (message && ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(message);
-                addMessage('Client Sent: ' + message);
+                addMessage(`Server sent: ${message}`);
                 messageInput.value = '';
             }
         }
@@ -396,14 +394,10 @@
             
             // Determine icon based on message type and content
             let icon = '🗄️'; // default server icon
-            if (type === 'api-request') {
-                icon = '👤'; // client icon for API requests
-            } else if (text.startsWith('Server Sent:')) {
-                icon = '👤'; // client icon for server sent messages
-            } else if (text.startsWith('Client Sent:')) {
-                icon = '👤'; // client icon for client sent messages
-            } else if (text.startsWith('Server Received:')) {
-                icon = '🗄️'; // server icon for server received messages
+            if (text.startsWith('Client sent:') || text.startsWith('Client connected') || text.startsWith('Client disconnected')) {
+                icon = '👤'; // client icon for messages from client
+            } else if (text.startsWith('Server sent:') || text.startsWith('Server status:') || text.startsWith('Server:')) {
+                icon = '🗄️'; // server icon for messages from server
             }
             
             messageDiv.innerHTML = `
@@ -418,7 +412,7 @@
         function handleApiRequest(apiRequestJson) {
             try {
                 const apiRequest = JSON.parse(apiRequestJson);
-                addMessage(`Client Sent: API Request: ${apiRequestJson}`, 'api-request');
+                addMessage(`Client sent: API Request ${apiRequest.operation}`, 'api-request');
                 
                 const container = document.getElementById('apiRequestsContainer');
                 container.innerHTML = '';
@@ -444,7 +438,7 @@
                 document.getElementById('responseInput').value = JSON.stringify(defaultResponse, null, 2);
                 
             } catch (error) {
-                addMessage(`Server Sent: Error parsing API request: ${error}`, 'error');
+                addMessage(`Server: Error parsing API request ${error}`, 'error');
             }
         }
 
@@ -506,14 +500,14 @@
                 try {
                     const response = JSON.parse(responseText);
                     ws.send(JSON.stringify(response));
-                    addMessage(`Server Sent: API Response: ${responseText}`, 'api-request');
+                    addMessage(`Server sent: API Response ${response.operation}`, 'api-request');
                     
                     // Clear the API requests container
                     document.getElementById('apiRequestsContainer').innerHTML = 
                         '<p style="color: #CBD5E1; font-style: italic;">No pending API requests</p>';
                         
                 } catch (error) {
-                    addMessage(`Server Sent: Error sending API response: ${error}`, 'error');
+                    addMessage(`Server: Error sending API response ${error}`, 'error');
                 }
             }
         }
@@ -531,9 +525,11 @@
             // Send a special message to request the server's IP address
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send('GET_SERVER_IP');
+                console.log('Requesting server IP address...');
                 
                 // Set a timeout in case the request fails
                 ipRequestTimeout = setTimeout(() => {
+                    console.log('IP detection failed - timeout reached');
                     const loadingIndicator = document.getElementById('ipLoadingIndicator');
                     if (loadingIndicator) {
                         loadingIndicator.innerHTML = '<span style="color: #EF4444;">❌ IP detection failed</span>';
@@ -553,6 +549,7 @@
             }
             
             document.getElementById('serverHost').textContent = serverIp;
+            console.log('Server IP detected:', serverIp);
             
             // Hide the loading indicator
             const loadingIndicator = document.getElementById('ipLoadingIndicator');
