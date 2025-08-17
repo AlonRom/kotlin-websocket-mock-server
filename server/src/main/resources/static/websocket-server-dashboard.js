@@ -1,3 +1,24 @@
+// Configuration object for easy customization
+const Config = {
+    // Timeouts and delays
+    IP_REQUEST_TIMEOUT: 10000, // 10 seconds
+    RETRY_DELAY: 1000, // 1 second
+    SUCCESS_INDICATOR_DURATION: 3000, // 3 seconds
+    RECONNECT_DELAY: 3000, // 3 seconds
+    
+    // WebSocket settings
+    WS_ENDPOINT: '/ws',
+    
+    // Display settings
+    TIMESTAMP_LOCALE: 'en-US',
+    TIMESTAMP_OPTIONS: { 
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    }
+};
+
 // Message types enum for better maintainability
 const MessageType = {
     SERVER_MESSAGE: 'server-message',
@@ -44,7 +65,7 @@ let clientCount = 0;
 
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const wsUrl = `${protocol}//${window.location.host}${Config.WS_ENDPOINT}`;
     
     ws = new WebSocket(wsUrl);
     
@@ -54,7 +75,7 @@ function connect() {
     
     ws.onclose = function() {
         console.log('Server: Disconnected from WebSocket');
-        setTimeout(connect, 3000);
+        setTimeout(connect, Config.RECONNECT_DELAY);
     };
     
     ws.onerror = function(error) {
@@ -102,12 +123,7 @@ function addMessage(text, type) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
     
-    const timestamp = new Date().toLocaleTimeString('en-US', { 
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
+    const timestamp = new Date().toLocaleTimeString(Config.TIMESTAMP_LOCALE, Config.TIMESTAMP_OPTIONS);
     
     // Get icon based on message type, fallback to a neutral icon
     const icon = MessageIcons[type] || '💬';
@@ -155,53 +171,13 @@ function handleApiRequest(apiRequestJson) {
 }
 
 function generateDefaultResponse(apiRequest) {
-    const baseResponse = {
+    return {
         operation: apiRequest.operation,
         success: true,
         message: `${apiRequest.operation} completed successfully`,
-        requestId: apiRequest.requestId
+        requestId: apiRequest.requestId,
+        data: apiRequest.data || null
     };
-
-    switch (apiRequest.operation) {
-        case 'getConfiguration':
-            return {
-                ...baseResponse,
-                data: {
-                    serverVersion: "1.0.0",
-                    maxConnections: "100",
-                    timeout: "30s"
-                }
-            };
-        case 'getData':
-            return {
-                ...baseResponse,
-                data: {
-                    items: [
-                        { id: 1, name: "Item 1", value: 100 },
-                        { id: 2, name: "Item 2", value: 200 }
-                    ],
-                    total: 2
-                }
-            };
-        case 'subscribe':
-            return {
-                ...baseResponse,
-                data: {
-                    subscriptionId: (apiRequest.data && apiRequest.data.subscriptionId) || 'sub_' + Date.now(),
-                    status: "active"
-                }
-            };
-        case 'unsubscribe':
-            return {
-                ...baseResponse,
-                data: {
-                    subscriptionId: (apiRequest.data && apiRequest.data.subscriptionId) || 'unknown',
-                    status: "inactive"
-                }
-            };
-        default:
-            return baseResponse;
-    }
 }
 
 function sendApiResponse(requestId) {
@@ -239,10 +215,10 @@ function requestServerIpAddress() {
             if (loadingIndicator) {
                 loadingIndicator.innerHTML = '<span style="color: #EF4444;">❌ IP detection failed</span>';
             }
-        }, 10000); // 10 second timeout
+        }, Config.IP_REQUEST_TIMEOUT);
     } else {
         // If WebSocket isn't ready yet, wait a bit and try again
-        setTimeout(requestServerIpAddress, 1000);
+        setTimeout(requestServerIpAddress, Config.RETRY_DELAY);
     }
 }
 
@@ -269,12 +245,12 @@ function updateServerUrlDisplay(serverIp) {
     successDiv.textContent = '✅ IP detected';
     urlDisplay.appendChild(successDiv);
     
-    // Remove success indicator after 3 seconds
+    // Remove success indicator after configured duration
     setTimeout(() => {
         if (successDiv.parentNode) {
             successDiv.remove();
         }
-    }, 3000);
+    }, Config.SUCCESS_INDICATOR_DURATION);
 }
 
 function clearMessages() {
