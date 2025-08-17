@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Server</title>
+    <link rel="stylesheet" href="websocket-server-dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>WebSocket Server</h1>
+            <p>Manage connections and handle API requests with real-time communication</p>
+            <div class="server-url-display">
+                <strong class="server-url-title">WebSocket Server URL:</strong>
+                <div class="server-url-content" id="serverUrlDisplay">
+                    ws://<span id="serverHost">localhost</span>:8081/ws
+                    <div id="ipLoadingIndicator" class="ip-loading-indicator">
+                        <span class="ip-loading-text">⏳ Detecting IP...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Send Message</h2>
+                <textarea id="messageInput" placeholder="Enter message to send to all clients..." rows="4"></textarea>
+                <button class="button" onclick="sendMessage()">Push to All Clients</button>
+            </div>
+
+            <div class="card">
+                <h2>API Response</h2>
+                <div id="apiRequestsContainer">
+                    <p class="no-requests">No pending API requests</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card full-width">
+            <h2 class="flex-header">
+                <span>Messages</span>
+                <button class="button" onclick="clearMessages()">Clear Messages</button>
+            </h2>
+            <div id="messages" class="messages"></div>
+        </div>
+    </div>
+
+    <script src="websocket-server-dashboard.js"></script>
+</body>
+</html>
