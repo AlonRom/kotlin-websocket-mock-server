@@ -35,6 +35,9 @@ const ServerMessages = {
     GET_SERVER_IP: 'GET_SERVER_IP'
 };
 
+// Broadcast control state
+let broadcastActive = false;
+
 // Message icons mapping
 const MessageIcons = {
     [MessageType.SERVER_MESSAGE]: '🗄️',
@@ -102,7 +105,17 @@ function connect() {
                 updateServerUrlDisplay(parsedMessage.payload);
                 break;
             default:
-                addMessage(`Client sent: ${message}`, MessageType.CLIENT_MESSAGE);
+                // Try to parse as broadcast control response
+                try {
+                    const response = JSON.parse(message);
+                    if (response.action && response.success !== undefined) {
+                        handleBroadcastControlResponse(response);
+                        return;
+                    }
+                } catch (e) {
+                    // Not a JSON response, treat as regular message
+                }
+                addMessage(`Server received from client: ${message}`, MessageType.SERVER_MESSAGE);
         }
     };
 }
@@ -140,7 +153,7 @@ function addMessage(text, type) {
 function handleApiRequest(apiRequestJson) {
     try {
         const apiRequest = JSON.parse(apiRequestJson);
-        addMessage(`Client sent: API Request ${apiRequest.operation}`, MessageType.CLIENT_MESSAGE);
+        addMessage(`Server received API request: ${apiRequest.operation}`, MessageType.SERVER_MESSAGE);
         
         const container = document.getElementById('apiRequestsContainer');
         container.innerHTML = '';
@@ -264,6 +277,124 @@ window.onload = function() {
     requestServerIpAddress();
     connect();
 };
+
+// Broadcast control functions
+function startBroadcast() {
+    const interval = parseInt(document.getElementById('broadcastInterval').value);
+    const message = document.getElementById('broadcastMessage').value;
+    
+    if (interval < 500) {
+        addMessage('Interval must be at least 500ms', MessageType.ERROR);
+        return;
+    }
+    
+    const request = {
+        action: 'start',
+        interval: interval,
+        message: message,
+        requestId: generateRequestId()
+    };
+    
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(request));
+        addMessage(`Server starting broadcast with interval: ${interval}ms`, MessageType.SERVER_MESSAGE);
+    } else {
+        addMessage('WebSocket not connected', MessageType.ERROR);
+    }
+}
+
+function stopBroadcast() {
+    const request = {
+        action: 'stop',
+        requestId: generateRequestId()
+    };
+    
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(request));
+        addMessage('Server stopping broadcast', MessageType.SERVER_MESSAGE);
+    } else {
+        addMessage('WebSocket not connected', MessageType.ERROR);
+    }
+}
+
+function getBroadcastStatus() {
+    const request = {
+        action: 'status',
+        requestId: generateRequestId()
+    };
+    
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(request));
+        addMessage('Requesting server broadcast status', MessageType.SERVER_MESSAGE);
+    } else {
+        addMessage('WebSocket not connected', MessageType.ERROR);
+    }
+}
+
+function generateRequestId() {
+    return 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function handleBroadcastControlResponse(response) {
+    console.log('Received broadcast control response:', response);
+    
+    if (response.success) {
+        addMessage(`Server broadcast ${response.action}: ${response.message}`, MessageType.SERVER_MESSAGE);
+        
+        // If this is a status response, update the status display
+        if (response.action === 'status' && response.status) {
+            updateBroadcastStatus(response.status);
+        } else if (response.action === 'start' || response.action === 'stop') {
+            // Refresh status after start/stop actions
+            setTimeout(() => getBroadcastStatus(), 500);
+        }
+    } else {
+        addMessage(`Server broadcast ${response.action} failed: ${response.message}`, MessageType.ERROR);
+    }
+}
+
+function updateBroadcastStatus(status) {
+    const container = document.getElementById('broadcastStatusContainer');
+    container.innerHTML = '';
+    
+    const statusDiv = document.createElement('div');
+    statusDiv.className = `broadcast-status ${status.isActive ? 'active' : 'inactive'}`;
+    
+    statusDiv.innerHTML = `
+        <div class="status-item">
+            <span class="status-label">Status:</span>
+            <span class="status-value ${status.isActive ? 'active' : 'inactive'}">${status.isActive ? 'Active' : 'Inactive'}</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Interval:</span>
+            <span class="status-value">${status.interval}ms</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Clients:</span>
+            <span class="status-value">${status.clientsConnected}</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Messages Sent:</span>
+            <span class="status-value">${status.messagesSent}</span>
+        </div>
+    `;
+    
+    container.appendChild(statusDiv);
+    
+    // Update button states
+    const startBtn = document.getElementById('startBroadcastBtn');
+    const stopBtn = document.getElementById('stopBroadcastBtn');
+    
+    if (status.isActive) {
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        broadcastActive = true;
+    } else {
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        broadcastActive = false;
+    }
+}
 
 // Handle Enter key in message input
 document.addEventListener('DOMContentLoaded', function() {
