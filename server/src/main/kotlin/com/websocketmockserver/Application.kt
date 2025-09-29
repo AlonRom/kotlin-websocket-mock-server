@@ -159,12 +159,12 @@ class BroadcastController {
     private var messageTemplate = ""
     private var messagesSent = 0L
     private var startTime = System.currentTimeMillis()
-    private var discoveryPort = 37020 // Discovery port default
+    private var discoveryPort = 2505 // Discovery port default
     private var broadcastJob: Job? = null
     private var udpBroadcastJob: Job? = null
     private var connectedClients: List<DefaultWebSocketSession> = emptyList()
 
-    fun startBroadcast(clients: List<DefaultWebSocketSession>, interval: Long, messageTemplate: String, discoveryPort: Int = 37020) {
+    fun startBroadcast(clients: List<DefaultWebSocketSession>, interval: Long, messageTemplate: String, discoveryPort: Int = 2505) {
         stopBroadcast() // Stop any existing broadcast
         
         this.isActive = true
@@ -395,7 +395,7 @@ fun main() {
                                         "start" -> {
                                             val interval = broadcastRequest.interval ?: 2000L
                                             val messageTemplate = broadcastRequest.message ?: "{\"type\":\"broadcast\",\"timestamp\":%d,\"messageNumber\":%d,\"clients\":%d}"
-                                            val discoveryPort = broadcastRequest.discoveryPort ?: 37020
+                                            val discoveryPort = broadcastRequest.discoveryPort ?: 2505
                                             
                                             broadcastController.startBroadcast(connectedClients.toList(), interval, messageTemplate, discoveryPort)
                                             
@@ -525,7 +525,7 @@ fun main() {
     }.start(wait = true)
 }
 
-suspend fun broadcastUdpMessage(message: String, port: Int = 37020) {
+suspend fun broadcastUdpMessage(message: String, port: Int = 2505) {
     val broadcastAddress = InetAddress.getByName("255.255.255.255")
     val socket = DatagramSocket()
     socket.broadcast = true
@@ -541,7 +541,7 @@ suspend fun broadcastUdpMessage(message: String, port: Int = 37020) {
     }
 }
 
-suspend fun broadcastServerAddress(port: Int = 37020, interval: Long = 2000) {
+suspend fun broadcastServerAddress(port: Int = 2505, interval: Long = 2000) {
     val broadcastAddress = InetAddress.getByName("255.255.255.255")
     val socket = DatagramSocket()
     socket.broadcast = true
