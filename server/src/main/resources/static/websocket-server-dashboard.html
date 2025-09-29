@@ -22,6 +22,38 @@
             </div>
         </div>
 
+        <!-- Broadcast Controls Row -->
+        <div class="grid">
+            <div class="card">
+                <h2>Broadcast Control</h2>
+                <div class="broadcast-controls">
+                    <div class="control-group">
+                        <label for="broadcastMessage">Broadcast Message:</label>
+                        <textarea id="broadcastMessage" placeholder='{"type":"broadcast","timestamp":%d,"messageNumber":%d,"clients":%d}' rows="3">{"type":"broadcast","timestamp":%d,"messageNumber":%d,"clients":%d}</textarea>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="broadcastInterval">Interval (ms):</label>
+                        <input type="number" id="broadcastInterval" value="2000" min="500" max="30000">
+                    </div>
+                    
+                    <div class="button-group">
+                        <button class="button" id="startBroadcastBtn" onclick="startBroadcast()">Start Broadcast</button>
+                        <button class="button" id="stopBroadcastBtn" onclick="stopBroadcast()" disabled>Stop Broadcast</button>
+                        <button class="button" onclick="getBroadcastStatus()">Get Status</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Broadcast Status</h2>
+                <div id="broadcastStatusContainer">
+                    <p class="no-status">No broadcast status available</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Controls Row -->
         <div class="grid">
             <div class="card">
                 <h2>Send Message</h2>

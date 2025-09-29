@@ -349,15 +349,21 @@ class MainActivity : AppCompatActivity() {
                                 if (text.startsWith("CLIENT_DISCONNECTED:")) {
                                     // Server is reporting that another client disconnected
                                     // This could indicate server issues, so show a status
+                                    Log.d(TAG, "Filtering out CLIENT_DISCONNECTED message")
                                     viewModel.addMessage(WebSocketMessage("Client status: Server connection lost", System.currentTimeMillis(), MessageType.CLIENT))
-                                } else if (!text.startsWith("CLIENT_CONNECTED:")) {
-                                    // Regular message from server
+                                } else if (text.startsWith("CLIENT_CONNECTED:")) {
+                                    // Server is reporting that another client connected
+                                    Log.d(TAG, "Filtering out CLIENT_CONNECTED message")
+                                    // Don't show this internal message to the user
+                                } else {
+                                    // Regular message from server - this should include broadcast messages
+                                    Log.d(TAG, "Adding regular message to display: $text")
                                     viewModel.addMessage(WebSocketMessage("Server sent: $text", System.currentTimeMillis(), MessageType.SERVER))
                                 }
                             }
-                            Log.d(TAG, "Message added successfully")
+                            Log.d(TAG, "Message processing completed")
                         } catch (e: Exception) {
-                            Log.e(TAG, "Error adding message", e)
+                            Log.e(TAG, "Error processing message", e)
                         }
                     }
                 }
