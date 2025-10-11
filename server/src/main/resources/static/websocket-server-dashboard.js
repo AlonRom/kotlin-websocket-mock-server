@@ -30,6 +30,7 @@ const MessageType = {
 const ServerMessages = {
     CLIENT_CONNECTED: 'CLIENT_CONNECTED:',
     CLIENT_DISCONNECTED: 'CLIENT_DISCONNECTED:',
+    CLIENT_COUNT: 'CLIENT_COUNT:',
     API_REQUEST: 'API_REQUEST:',
     SERVER_IP: 'SERVER_IP:',
     GET_SERVER_IP: 'GET_SERVER_IP'
@@ -66,23 +67,90 @@ function parseServerMessage(message) {
 let ws;
 let clientCount = 0;
 
+function updateSocketStatus(status, clients) {
+    const statusElement = document.getElementById('socketConnectionStatus');
+    const clientCountElement = document.getElementById('socketClientCount');
+    
+    if (statusElement && status !== undefined) {
+        statusElement.textContent = status;
+        // Remove all status classes
+        statusElement.className = 'status-value';
+        
+        // Add appropriate class based on status
+        if (status === 'Connected') {
+            statusElement.classList.add('active');
+        } else if (status === 'Server Ready') {
+            statusElement.classList.add('active');
+        } else if (status === 'Disconnected') {
+            statusElement.classList.add('inactive');
+        } else if (status === 'Connecting...') {
+            statusElement.classList.add('status-connecting');
+        } else if (status === 'Error') {
+            statusElement.classList.add('inactive');
+        }
+    }
+    
+    if (clientCountElement && clients !== undefined) {
+        clientCountElement.textContent = clients;
+    }
+}
+
+function updateClientCount(count) {
+    const clientCountElement = document.getElementById('socketClientCount');
+    const statusElement = document.getElementById('socketConnectionStatus');
+    
+    if (clientCountElement) {
+        // Subtract 1 because the dashboard itself is a client
+        const otherClients = Math.max(0, count - 1);
+        console.log('updateClientCount: Total clients:', count, 'Other clients:', otherClients);
+        clientCountElement.textContent = otherClients;
+        
+        // Update connection status based on whether there are other clients
+        if (statusElement) {
+            if (otherClients > 0) {
+                console.log('Setting status to Connected');
+                statusElement.textContent = 'Connected';
+                statusElement.className = 'status-value active';
+            } else {
+                console.log('Setting status to No Clients');
+                statusElement.textContent = 'No Clients';
+                statusElement.className = 'status-value';
+            }
+        }
+    }
+}
+
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}${Config.WS_ENDPOINT}`;
+    
+    // Ensure we show "Connecting..." state
+    updateSocketStatus('Connecting...');
     
     ws = new WebSocket(wsUrl);
     
     ws.onopen = function() {
         console.log('Server: Connected to WebSocket');
+        // Small delay to ensure connecting state is visible
+        setTimeout(() => {
+            updateSocketStatus('No Clients');
+            // Reset client count to 0 initially
+            updateClientCount(1); // Dashboard is 1 client, so 1-1=0 other clients
+        }, 100);
     };
     
     ws.onclose = function() {
         console.log('Server: Disconnected from WebSocket');
-        setTimeout(connect, Config.RECONNECT_DELAY);
+        updateSocketStatus('Disconnected');
+        setTimeout(() => {
+            updateSocketStatus('Connecting...');
+            connect();
+        }, Config.RECONNECT_DELAY);
     };
     
     ws.onerror = function(error) {
         console.log('Server: WebSocket error:', error);
+        updateSocketStatus('Error');
     };
     
     ws.onmessage = function(event) {
@@ -92,11 +160,15 @@ function connect() {
         switch (parsedMessage.type) {
             case 'CLIENT_CONNECTED':
                 addMessage('Server status: Client connected', MessageType.SERVER_MESSAGE);
-                clientCount++;
                 break;
             case 'CLIENT_DISCONNECTED':
                 addMessage('Server status: Client disconnected', MessageType.SERVER_MESSAGE);
-                clientCount--;
+                break;
+            case 'CLIENT_COUNT':
+                const count = parseInt(parsedMessage.payload);
+                console.log('Received CLIENT_COUNT:', count, 'Other clients:', Math.max(0, count - 1));
+                clientCount = Math.max(0, count - 1);
+                updateClientCount(count);
                 break;
             case 'API_REQUEST':
                 handleApiRequest(parsedMessage.payload);
@@ -168,11 +240,19 @@ function handleApiRequest(apiRequestJson) {
             <div class="operation-data">${JSON.stringify(apiRequest, null, 2)}</div>
             <div class="response-section">
                 <textarea id="responseInput" placeholder="Enter response JSON..." rows="4"></textarea>
-                <button class="button" onclick="sendApiResponse('${apiRequest.requestId}')">Send Response</button>
+                <button type="button" class="button send-api-response-btn" data-request-id="${apiRequest.requestId}">Send Response</button>
             </div>
         `;
         
         container.appendChild(operationDiv);
+        
+        // Attach event listener to the dynamically created button
+        const responseBtn = operationDiv.querySelector('.send-api-response-btn');
+        if (responseBtn) {
+            responseBtn.addEventListener('click', function() {
+                sendApiResponse(this.getAttribute('data-request-id'));
+            });
+        }
         
         // Auto-generate default response
         const defaultResponse = generateDefaultResponse(apiRequest);
@@ -281,6 +361,7 @@ window.onload = function() {
 // Broadcast control functions
 function startBroadcast() {
     const interval = parseInt(document.getElementById('broadcastInterval').value);
+    const port = parseInt(document.getElementById('broadcastPort').value);
     const message = document.getElementById('broadcastMessage').value;
     
     if (interval < 500) {
@@ -288,16 +369,22 @@ function startBroadcast() {
         return;
     }
     
+    if (port < 1 || port > 65535) {
+        addMessage('Port must be between 1 and 65535', MessageType.ERROR);
+        return;
+    }
+    
     const request = {
         action: 'start',
         interval: interval,
+        port: port,
         message: message,
         requestId: generateRequestId()
     };
     
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(request));
-        addMessage(`Server starting broadcast with interval: ${interval}ms`, MessageType.SERVER_MESSAGE);
+        addMessage(`Server starting broadcast on port: ${port} with interval: ${interval}ms`, MessageType.SERVER_MESSAGE);
     } else {
         addMessage('WebSocket not connected', MessageType.ERROR);
     }
@@ -366,6 +453,10 @@ function updateBroadcastStatus(status) {
             <span class="status-value ${status.isActive ? 'active' : 'inactive'}">${status.isActive ? 'Active' : 'Inactive'}</span>
         </div>
         <div class="status-item">
+            <span class="status-label">Port:</span>
+            <span class="status-value">${status.port || 'N/A'}</span>
+        </div>
+        <div class="status-item">
             <span class="status-label">Interval:</span>
             <span class="status-value">${status.interval}ms</span>
         </div>
@@ -396,8 +487,62 @@ function updateBroadcastStatus(status) {
     }
 }
 
-// Handle Enter key in message input
+// Initialize event listeners when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
+    // Prevent form submissions
+    const broadcastForm = document.getElementById('broadcastForm');
+    const messageForm = document.getElementById('messageForm');
+    
+    if (broadcastForm) {
+        broadcastForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+        });
+    }
+    
+    if (messageForm) {
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+        });
+    }
+    
+    // Broadcast control buttons
+    const startBroadcastBtn = document.getElementById('startBroadcastBtn');
+    const stopBroadcastBtn = document.getElementById('stopBroadcastBtn');
+    const getBroadcastStatusBtn = document.getElementById('getBroadcastStatusBtn');
+    
+    if (startBroadcastBtn) {
+        startBroadcastBtn.addEventListener('click', startBroadcast);
+    }
+    
+    if (stopBroadcastBtn) {
+        stopBroadcastBtn.addEventListener('click', stopBroadcast);
+    }
+    
+    if (getBroadcastStatusBtn) {
+        getBroadcastStatusBtn.addEventListener('click', getBroadcastStatus);
+    }
+    
+    // Message control buttons
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+    const clearMessagesBtn = document.getElementById('clearMessagesBtn');
+    
+    if (sendMessageBtn) {
+        sendMessageBtn.addEventListener('click', sendMessage);
+    }
+    
+    if (clearMessagesBtn) {
+        clearMessagesBtn.addEventListener('click', clearMessages);
+    }
+    
+    // Set default broadcast message template
+    const broadcastMessage = document.getElementById('broadcastMessage');
+    if (broadcastMessage && !broadcastMessage.value) {
+        broadcastMessage.value = '{"type":"broadcast","timestamp":%d,"messageNumber":%d,"clients":%d}';
+    }
+    
+    // Note: Default UDP port is 2505 for server discovery
+    
+    // Handle Enter key in message input
     const messageInput = document.getElementById('messageInput');
     if (messageInput) {
         messageInput.addEventListener('keypress', function(e) {

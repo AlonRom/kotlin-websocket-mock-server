@@ -231,7 +231,7 @@ class MainActivity : AppCompatActivity() {
             onServerDiscovered = { server ->
                 runOnUiThread {
                     Log.d(TAG, "Server discovered callback triggered: ${server.name}")
-                    updateDiscoveredServersList() // Update list when a server is discovered
+                    updateDiscoveredServersList() // Update list when a server is discovered or removed
                     Log.d(TAG, "Server discovered via ${server.discoveryMethod}: ${server.name}")
                 }
             },
