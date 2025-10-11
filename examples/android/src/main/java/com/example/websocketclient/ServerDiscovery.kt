@@ -20,11 +20,12 @@ class ServerDiscovery(
 ) {
     private var discoveryJob: Job? = null
     private var emulatorFallbackJob: Job? = null
+    private var cleanupJob: Job? = null
     private val discoveredServers = mutableMapOf<String, DiscoveredServer>()
     
     companion object {
         private const val TAG = "ServerDiscovery"
-        private const val DISCOVERY_PORT = 37020
+        private const val DISCOVERY_PORT = 2505
         private const val EMULATOR_PORT = 8081
     }
 
@@ -44,6 +45,9 @@ class ServerDiscovery(
             startUdpDiscovery()
             startEmulatorDiscovery()
         }
+        
+        // Start periodic cleanup of old servers
+        startCleanupJob()
     }
     
     private fun startUdpDiscovery() {
@@ -256,6 +260,43 @@ class ServerDiscovery(
         discoveryJob = null
         emulatorFallbackJob?.cancel()
         emulatorFallbackJob = null
+        cleanupJob?.cancel()
+        cleanupJob = null
+        Log.d(TAG, "Discovery stopped")
+    }
+    
+    private fun startCleanupJob() {
+        cleanupJob = CoroutineScope(Dispatchers.IO).launch {
+            while (isActive) {
+                try {
+                    delay(5000) // Check every 5 seconds
+                    cleanupOldServers()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Cleanup job error: $e")
+                }
+            }
+        }
+    }
+    
+    private fun cleanupOldServers() {
+        val removedServers = mutableListOf<String>()
+        val currentTime = System.currentTimeMillis()
+        
+        discoveredServers.entries.removeIf { (key, server) ->
+            val isOld = currentTime - server.timestamp > 15000 // Remove after 15 seconds (longer than isRecent check)
+            if (isOld) {
+                removedServers.add(server.name)
+                Log.d(TAG, "Removing old server from discovery list: ${server.name}")
+            }
+            isOld
+        }
+        
+        // Notify UI if servers were removed
+        if (removedServers.isNotEmpty()) {
+            Log.d(TAG, "Removed ${removedServers.size} old servers: ${removedServers.joinToString()}")
+            // Trigger a callback to update the UI
+            onServerDiscovered(DiscoveredServer("cleanup", "", currentTime, "CLEANUP"))
+        }
     }
 
     private fun parseBroadcastMessage(message: String): DiscoveredServer? {

@@ -27,7 +27,29 @@ A simple Kotlin WebSocket server built with Ktor that provides a mock WebSocket 
 
 ### 1. Start the WebSocket Server
 
-#### Option 1: Auto-start with browser (Recommended)
+#### Option 1: Simple commands (macOS/Linux - Recommended)
+
+**Start the server:**
+```bash
+make start
+```
+
+**Stop the server:**
+```bash
+make stop
+```
+
+**Restart the server:**
+```bash
+make restart
+```
+
+> **What these commands do:**
+> - `make start` → Runs `./start-server.sh` which frees port 8081, starts the server, and opens your browser
+> - `make stop` → Runs `pkill -f "gradle.*run"` to stop all Gradle server processes
+> - `make restart` → Stops and then starts the server with a 2-second delay
+
+#### Option 2: Platform-specific startup scripts
 
 **On macOS/Linux:**
 ```bash
@@ -50,7 +72,7 @@ This will:
 - Automatically open your browser to `http://localhost:8081`
 - Begin broadcasting server availability on the network
 
-#### Option 2: Manual start
+#### Option 3: Manual start
 ```bash
 ./gradlew :server:run
 ```
@@ -149,34 +171,57 @@ websocket-mock-server/
 │       │   └── WebSocketMessage.kt
 │       └── src/main/res/     # Android resources
 ├── build.gradle.kts          # Root build configuration
-├── start-server.sh           # Auto-start script
+├── Makefile                  # Convenient commands (make start/stop)
+├── start-server.sh           # Auto-start script (macOS/Linux)
+├── start-server.bat          # Auto-start script (Windows)
+├── start-server.ps1          # Auto-start script (PowerShell)
 └── README.md                 # This file
 ```
 
 ## Stopping the Server
 
+### Quick Stop (macOS/Linux)
+```bash
+make stop
+```
+
+### Alternative Methods
+
+**Graceful shutdown:**
 Press `Ctrl+C` in the terminal where the server is running.
 
-If the server doesn't stop properly, you can force kill all Gradle processes:
+**Force stop all Gradle processes:**
 ```bash
 pkill -f "gradle.*run"
 ```
 
-**Alternative kill commands:**
+**Other kill commands:**
 ```bash
-# Kill all Gradle run processes
+# Kill all Gradle run processes (what 'make stop' does)
 pkill -f "gradle.*run"
 
-# Kill specific port (if using different port)
+# Kill specific port (if you need to free port 8081)
 lsof -ti:8081 | xargs kill -9
 
-# Kill all Java processes (nuclear option)
+# Kill all Java processes (nuclear option - use with caution)
 pkill -f java
 ```
 
 ## Development
 
-### Building
+### Quick Commands (macOS/Linux)
+```bash
+# Build the project
+make build
+
+# Clean build artifacts
+make clean
+
+# Show all available commands
+make help
+```
+
+### Building with Gradle
 ```bash
 # Build everything
 ./gradlew build

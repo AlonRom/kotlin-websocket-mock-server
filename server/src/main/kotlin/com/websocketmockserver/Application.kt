@@ -19,6 +19,12 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 
+// Configure JSON parser to ignore unknown keys for graceful parsing attempts
+val json = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+}
+
 @Serializable
 data class ApiRequest(
     val operation: String,
@@ -37,10 +43,10 @@ data class ApiResponse(
 
 @Serializable
 data class BroadcastControlRequest(
-    val action: String, // "start", "stop"
+    val action: String, // "start", "stop", "status"
     val interval: Long? = null, // milliseconds
     val message: String? = null,
-    val discoveryPort: Int? = null, // UDP discovery port
+    val port: Int? = null, // UDP broadcast port
     val requestId: String? = null
 )
 
@@ -58,7 +64,8 @@ data class BroadcastStatus(
     val interval: Long,
     val messageTemplate: String,
     val clientsConnected: Int,
-    val messagesSent: Long
+    val messagesSent: Long,
+    val port: Int? = null
 )
 
 // Dynamic operation handler interface
@@ -159,18 +166,18 @@ class BroadcastController {
     private var messageTemplate = ""
     private var messagesSent = 0L
     private var startTime = System.currentTimeMillis()
-    private var discoveryPort = 2505 // Discovery port default
+    private var port = 2505 // UDP broadcast port default
     private var broadcastJob: Job? = null
     private var udpBroadcastJob: Job? = null
     private var connectedClients: List<DefaultWebSocketSession> = emptyList()
 
-    fun startBroadcast(clients: List<DefaultWebSocketSession>, interval: Long, messageTemplate: String, discoveryPort: Int = 2505) {
+    fun startBroadcast(clients: List<DefaultWebSocketSession>, interval: Long, messageTemplate: String, port: Int = 2505) {
         stopBroadcast() // Stop any existing broadcast
         
         this.isActive = true
         this.interval = interval
         this.messageTemplate = messageTemplate
-        this.discoveryPort = discoveryPort
+        this.port = port
         this.connectedClients = clients
         this.messagesSent = 0L
         this.startTime = System.currentTimeMillis()
@@ -191,20 +198,27 @@ class BroadcastController {
             }
         }
         
-        // Start UDP message broadcast
+        // Start UDP discovery broadcast
         udpBroadcastJob = CoroutineScope(Dispatchers.IO).launch {
+            val localIp = getLocalIpAddress().orEmpty().ifBlank { "127.0.0.1" }
+            val discoveryMessage = "WEBSOCKET_SERVER:ws://$localIp:8081/ws"
+            println("=== Starting UDP discovery broadcast ===")
+            println("Message: $discoveryMessage")
+            println("Port: $port")
+            println("Interval: ${interval}ms")
             while (isActive) {
                 try {
-                    val message = generateMessage()
-                    broadcastUdpMessage(message, discoveryPort)
+                    broadcastUdpMessage(discoveryMessage, port)
+                    println("UDP broadcasted discovery message on port $port")
                 } catch (e: Exception) {
                     println("UDP broadcast error: $e")
                 }
                 delay(interval)
             }
+            println("=== Stopped UDP discovery broadcast ===")
         }
         
-        println("Started broadcast with interval: ${interval}ms")
+        println("Started broadcast with interval: ${interval}ms, port: ${port}")
     }
     
     fun stopBroadcast() {
@@ -252,7 +266,8 @@ class BroadcastController {
             interval = interval,
             messageTemplate = messageTemplate,
             clientsConnected = connectedClients.size,
-            messagesSent = messagesSent
+            messagesSent = messagesSent,
+            port = port
         )
     }
 }
@@ -276,11 +291,8 @@ fun main() {
         }
     })
 
-    // UDP broadcast disabled - only controlled broadcasting via web dashboard
-    // @OptIn(DelicateCoroutinesApi::class)
-    // GlobalScope.launch {
-    //     broadcastServerAddress()
-    // }
+    // UDP broadcast is now controlled via the web dashboard
+    // Users can start/stop broadcasts using the Broadcast Control panel
 
     embeddedServer(Netty, port = 8081, host = "0.0.0.0") {
         install(WebSockets) {
@@ -297,12 +309,21 @@ fun main() {
                 // Update broadcast controller with current client list
                 broadcastController.updateClients(connectedClients.toList())
                  
-                 // Notify web UI about new client connection
+                 // Send current client count to the newly connected client
+                 try {
+                     this.send("CLIENT_COUNT:${connectedClients.size}")
+                 } catch (e: Exception) {
+                     println("Failed to send client count: $e")
+                 }
+                 
+                 // Notify other clients about new client connection
                  val connectionMessage = "CLIENT_CONNECTED:Client"
                  connectedClients.forEach { client ->
                      if (client != this) {
                          try {
                              client.send(connectionMessage)
+                             // Also send updated count to existing clients
+                             client.send("CLIENT_COUNT:${connectedClients.size}")
                          } catch (e: Exception) {
                              println("Failed to notify web UI about connection: $e")
                          }
@@ -320,7 +341,7 @@ fun main() {
                             
                             // Try to parse as API request (from Android clients)
                             try {
-                                val apiRequest = Json.decodeFromString<ApiRequest>(receivedText)
+                                val apiRequest = json.decodeFromString<ApiRequest>(receivedText)
                                 println("Received API request: ${apiRequest.operation}")
                                 println("API request ID: ${apiRequest.requestId}")
                                 
@@ -331,7 +352,7 @@ fun main() {
                                 }
                                 
                                 // Forward API request to web UI for manual handling
-                                val webUiMessage = "API_REQUEST:" + Json.encodeToString(apiRequest)
+                                val webUiMessage = "API_REQUEST:" + json.encodeToString(apiRequest)
                                 println("Forwarding to web UI: $webUiMessage")
                                 connectedClients.forEach { client ->
                                     if (client != this) { // Send to all clients except the sender (which is the Android app)
@@ -355,7 +376,7 @@ fun main() {
                             if (!messageHandled) {
                                 // Try to parse as API response (from web UI)
                                 try {
-                                    val apiResponse = Json.decodeFromString<ApiResponse>(receivedText)
+                                    val apiResponse = json.decodeFromString<ApiResponse>(receivedText)
                                     println("Received API response: ${apiResponse.operation}")
                                     println("API response ID: ${apiResponse.requestId}")
                                     
@@ -366,7 +387,7 @@ fun main() {
                                         println("Found client: ${requestingClient != null}")
                                         if (requestingClient != null) {
                                             try {
-                                                requestingClient.send(Json.encodeToString(apiResponse))
+                                                requestingClient.send(json.encodeToString(apiResponse))
                                                 println("Sent response to requesting client")
                                                 pendingRequests.remove(apiResponse.requestId) // Clean up
                                             } catch (e: Exception) {
@@ -388,21 +409,21 @@ fun main() {
                             if (!messageHandled) {
                                 // Try to parse as broadcast control request (from web UI)
                                 try {
-                                    val broadcastRequest = Json.decodeFromString<BroadcastControlRequest>(receivedText)
+                                    val broadcastRequest = json.decodeFromString<BroadcastControlRequest>(receivedText)
                                     println("Received broadcast control request: ${broadcastRequest.action}")
                                     
                                     val response = when (broadcastRequest.action.lowercase()) {
                                         "start" -> {
                                             val interval = broadcastRequest.interval ?: 2000L
                                             val messageTemplate = broadcastRequest.message ?: "{\"type\":\"broadcast\",\"timestamp\":%d,\"messageNumber\":%d,\"clients\":%d}"
-                                            val discoveryPort = broadcastRequest.discoveryPort ?: 2505
+                                            val port = broadcastRequest.port ?: 2505
                                             
-                                            broadcastController.startBroadcast(connectedClients.toList(), interval, messageTemplate, discoveryPort)
+                                            broadcastController.startBroadcast(connectedClients.toList(), interval, messageTemplate, port)
                                             
                                             BroadcastControlResponse(
                                                 action = "start",
                                                 success = true,
-                                                message = "Broadcast started with interval: ${interval}ms, discovery port: ${discoveryPort}",
+                                                message = "Broadcast started with interval: ${interval}ms, port: ${port}",
                                                 requestId = broadcastRequest.requestId
                                             )
                                         }
@@ -417,13 +438,13 @@ fun main() {
                                         }
                                         "status" -> {
                                             val status = broadcastController.getStatus()
-                                            val responseJson = Json.encodeToString(BroadcastControlResponse(
+                                            val responseJson = json.encodeToString(BroadcastControlResponse(
                                                 action = "status",
                                                 success = true,
                                                 message = "Broadcast status retrieved",
                                                 requestId = broadcastRequest.requestId
                                             ))
-                                            val statusJson = Json.encodeToString(status)
+                                            val statusJson = json.encodeToString(status)
                                             val combinedResponse = responseJson.dropLast(1) + ",\"status\":" + statusJson + "}"
                                             this.send(combinedResponse)
                                             continue // Skip the regular response sending
@@ -440,7 +461,7 @@ fun main() {
                                     
                                     // Send response back to the web UI client
                                     try {
-                                        this.send(Json.encodeToString(response))
+                                        this.send(json.encodeToString(response))
                                         println("Sent broadcast control response: ${response.action}")
                                     } catch (e: Exception) {
                                         println("Failed to send broadcast control response: $e")
@@ -506,13 +527,13 @@ fun main() {
                          println("Cleaned up pending request: $requestId")
                      }
                      
-                    // Notify web UI about client disconnection (only send to web UI, not Android clients)
+                    // Notify remaining clients about client disconnection and updated count
                     val disconnectionMessage = "CLIENT_DISCONNECTED:Client"
-                    // Note: In a real implementation, you'd need to identify web UI clients
-                    // For now, we'll send to all clients but Android should ignore these internal messages
                     connectedClients.forEach { client ->
                         try {
                             client.send(disconnectionMessage)
+                            // Send updated count to remaining clients
+                            client.send("CLIENT_COUNT:${connectedClients.size}")
                         } catch (e: Exception) {
                             println("Failed to notify web UI about disconnection: $e")
                         }
@@ -533,9 +554,10 @@ suspend fun broadcastUdpMessage(message: String, port: Int = 2505) {
     val packet = DatagramPacket(buffer, buffer.size, broadcastAddress, port)
     try {
         socket.send(packet)
-        println("UDP broadcasted: $message")
+        println("✓ UDP broadcasted to 255.255.255.255:$port - $message")
     } catch (e: Exception) {
-        println("Failed to UDP broadcast: $e")
+        println("✗ Failed to UDP broadcast: $e")
+        e.printStackTrace()
     } finally {
         socket.close()
     }

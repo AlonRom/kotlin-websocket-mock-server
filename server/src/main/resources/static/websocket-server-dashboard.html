@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Server</title>
+    <meta name="description" content="WebSocket Mock Server Dashboard - Manage connections and handle API requests with real-time communication">
+    <meta name="theme-color" content="#000000">
+    <title>WebSocket Server Dashboard</title>
     <link rel="stylesheet" href="websocket-server-dashboard.css">
 </head>
 <body>
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <div class="container">
-        <div class="header">
+        <header class="header">
             <h1>WebSocket Server</h1>
             <p>Manage connections and handle API requests with real-time communication</p>
-            <div class="server-url-display">
+            <div class="server-url-display" role="status" aria-live="polite">
                 <strong class="server-url-title">WebSocket Server URL:</strong>
                 <div class="server-url-content" id="serverUrlDisplay">
                     ws://<span id="serverHost">localhost</span>:8081/ws
@@ -20,62 +25,118 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <!-- Broadcast Controls Row -->
-        <div class="grid">
-            <div class="card">
-                <h2>Broadcast Control</h2>
-                <div class="broadcast-controls">
-                    <div class="control-group">
-                        <label for="broadcastMessage">Broadcast Message:</label>
-                        <textarea id="broadcastMessage" placeholder='{"type":"broadcast","timestamp":%d,"messageNumber":%d,"clients":%d}' rows="3">{"type":"broadcast","timestamp":%d,"messageNumber":%d,"clients":%d}</textarea>
-                    </div>
+        <main id="main-content">
+            <!-- 3-Column Layout -->
+            <div class="three-column-layout">
+                <!-- Column 1: Broadcast -->
+                <section class="column" aria-labelledby="broadcast-column-header">
+                    <h2 class="column-header" id="broadcast-column-header">Broadcast</h2>
                     
-                    <div class="control-group">
-                        <label for="broadcastInterval">Interval (ms):</label>
-                        <input type="number" id="broadcastInterval" value="2000" min="500" max="30000">
-                    </div>
+                    <article class="card">
+                        <h3>Setup</h3>
+                        <div class="control-group">
+                            <label for="broadcastMessage">Message Template:</label>
+                            <textarea 
+                                id="broadcastMessage" 
+                                name="broadcastMessage"
+                                placeholder='{"type":"broadcast","timestamp":%d,"messageNumber":%d,"clients":%d}' 
+                                rows="3"></textarea>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="broadcastPort">Port:</label>
+                            <input 
+                                type="number" 
+                                id="broadcastPort" 
+                                name="broadcastPort"
+                                value="2505" 
+                                min="1" 
+                                max="65535">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="broadcastInterval">Interval (ms):</label>
+                            <input 
+                                type="number" 
+                                id="broadcastInterval" 
+                                name="broadcastInterval"
+                                value="10000" 
+                                min="500" 
+                                max="30000">
+                        </div>
+                        
+                        <div class="button-group" role="group" aria-label="Broadcast controls">
+                            <button type="button" class="button" id="startBroadcastBtn">Start</button>
+                            <button type="button" class="button" id="stopBroadcastBtn" disabled>Stop</button>
+                            <button type="button" class="button" id="getBroadcastStatusBtn">Get Status</button>
+                        </div>
+                    </article>
+
+                    <article class="card">
+                        <h3>Status</h3>
+                        <div id="broadcastStatusContainer" role="status" aria-live="polite" aria-atomic="true">
+                            <p class="no-status">No broadcast status available</p>
+                        </div>
+                    </article>
+                </section>
+
+                <!-- Column 2: Socket Communication -->
+                <section class="column" aria-labelledby="socket-column-header">
+                    <h2 class="column-header" id="socket-column-header">Socket Communication</h2>
                     
-                    <div class="button-group">
-                        <button class="button" id="startBroadcastBtn" onclick="startBroadcast()">Start Broadcast</button>
-                        <button class="button" id="stopBroadcastBtn" onclick="stopBroadcast()" disabled>Stop Broadcast</button>
-                        <button class="button" onclick="getBroadcastStatus()">Get Status</button>
-                    </div>
-                </div>
-            </div>
+                    <article class="card">
+                        <h3>Send Message</h3>
+                        <div class="control-group">
+                            <label for="messageInput" class="visually-hidden">Message to send to all clients</label>
+                            <textarea 
+                                id="messageInput" 
+                                name="message"
+                                placeholder="Enter message to send to all clients..." 
+                                rows="4"></textarea>
+                            <button type="button" class="button" id="sendMessageBtn">Push to All Clients</button>
+                        </div>
+                    </article>
 
-            <div class="card">
-                <h2>Broadcast Status</h2>
-                <div id="broadcastStatusContainer">
-                    <p class="no-status">No broadcast status available</p>
-                </div>
-            </div>
-        </div>
+                    <article class="card">
+                        <h3>API Response</h3>
+                        <div id="apiRequestsContainer" role="status" aria-live="polite" aria-atomic="true">
+                            <p class="no-requests">No pending API requests</p>
+                        </div>
+                    </article>
 
-        <!-- Main Controls Row -->
-        <div class="grid">
-            <div class="card">
-                <h2>Send Message</h2>
-                <textarea id="messageInput" placeholder="Enter message to send to all clients..." rows="4"></textarea>
-                <button class="button" onclick="sendMessage()">Push to All Clients</button>
-            </div>
+                    <article class="card">
+                        <h3>Status</h3>
+                        <div id="socketStatusContainer" role="status" aria-live="polite" aria-atomic="true">
+                            <div class="socket-status">
+                                <div class="status-item">
+                                    <span class="status-label">Status:</span>
+                                    <span class="status-value status-connecting" id="socketConnectionStatus">Connecting...</span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-label">Connected Clients:</span>
+                                    <span class="status-value" id="socketClientCount">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </section>
 
-            <div class="card">
-                <h2>API Response</h2>
-                <div id="apiRequestsContainer">
-                    <p class="no-requests">No pending API requests</p>
-                </div>
+                <!-- Column 3: Log Messages -->
+                <section class="column column-logs" aria-labelledby="messages-column-header">
+                    <h2 class="column-header" id="messages-column-header">Log Messages</h2>
+                    
+                    <article class="card card-logs">
+                        <div class="flex-header">
+                            <span class="visually-hidden">Messages log</span>
+                            <button type="button" class="button button-small" id="clearMessagesBtn">Clear</button>
+                        </div>
+                        <div id="messages" class="messages" role="log" aria-live="polite" aria-atomic="false"></div>
+                    </article>
+                </section>
             </div>
-        </div>
-
-        <div class="card full-width">
-            <h2 class="flex-header">
-                <span>Messages</span>
-                <button class="button" onclick="clearMessages()">Clear Messages</button>
-            </h2>
-            <div id="messages" class="messages"></div>
-        </div>
+        </main>
     </div>
 
     <script src="websocket-server-dashboard.js"></script>
