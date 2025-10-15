@@ -182,43 +182,24 @@ class BroadcastController {
         this.messagesSent = 0L
         this.startTime = System.currentTimeMillis()
         
-        println("Starting broadcast with ${clients.size} clients, interval: ${interval}ms")
+        println("Starting UDP broadcast - Template: $messageTemplate, Port: $port, Interval: ${interval}ms")
         
-        // Start WebSocket broadcast
-        broadcastJob = CoroutineScope(Dispatchers.IO).launch {
+        // Start UDP broadcast with custom message template
+        udpBroadcastJob = CoroutineScope(Dispatchers.IO).launch {
             while (isActive) {
                 try {
                     val message = generateMessage()
-                    broadcastToClients(message)
+                    broadcastUdpMessage(message, port)
+                    println("UDP broadcast sent on port $port: $message")
                     messagesSent++
-                } catch (e: Exception) {
-                    println("Broadcast error: $e")
-                }
-                delay(interval)
-            }
-        }
-        
-        // Start UDP discovery broadcast
-        udpBroadcastJob = CoroutineScope(Dispatchers.IO).launch {
-            val localIp = getLocalIpAddress().orEmpty().ifBlank { "127.0.0.1" }
-            val discoveryMessage = "WEBSOCKET_SERVER:ws://$localIp:8081/ws"
-            println("=== Starting UDP discovery broadcast ===")
-            println("Message: $discoveryMessage")
-            println("Port: $port")
-            println("Interval: ${interval}ms")
-            while (isActive) {
-                try {
-                    broadcastUdpMessage(discoveryMessage, port)
-                    println("UDP broadcasted discovery message on port $port")
                 } catch (e: Exception) {
                     println("UDP broadcast error: $e")
                 }
                 delay(interval)
             }
-            println("=== Stopped UDP discovery broadcast ===")
         }
         
-        println("Started broadcast with interval: ${interval}ms, port: ${port}")
+        println("UDP broadcast started")
     }
     
     fun stopBroadcast() {
@@ -238,10 +219,11 @@ class BroadcastController {
         val timestamp = System.currentTimeMillis()
         
         return try {
-            messageTemplate.format(timestamp, messagesSent, connectedClients.size)
+            String.format(messageTemplate, timestamp, messagesSent, connectedClients.size)
         } catch (e: Exception) {
-            // If formatting fails, return a simple message
-            "{\"type\":\"broadcast\",\"timestamp\":$timestamp,\"messageNumber\":$messagesSent,\"clients\":${connectedClients.size}}"
+            // If formatting fails, return the template as-is
+            println("WARNING: Failed to format message template: ${e.message}")
+            messageTemplate
         }
     }
     
