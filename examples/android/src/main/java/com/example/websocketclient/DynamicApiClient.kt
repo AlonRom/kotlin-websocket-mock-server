@@ -35,7 +35,7 @@ class DynamicApiClient {
     ): String {
         val requestId = UUID.randomUUID().toString()
         val request = ApiRequest(
-            operation = operation,
+            action = operation,
             data = data,
             requestId = requestId
         )
@@ -66,7 +66,7 @@ class DynamicApiClient {
             }
             
             // If no specific callback, check for operation-based callback
-            val operationCallback = callbacks[response.operation.lowercase()]
+            val operationCallback = callbacks[response.action.lowercase()]
             if (operationCallback != null) {
                 if (response.success) {
                     operationCallback.onSuccess(response.data, response.message)

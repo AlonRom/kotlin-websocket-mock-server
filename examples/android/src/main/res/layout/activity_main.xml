@@ -33,7 +33,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Connect to servers and manage API operations"
+                android:text="Connect to servers and manage API actions"
                 android:textAppearance="?attr/textAppearanceBody1"
                 android:textColor="@color/text_secondary"
                 android:alpha="0.8" />
@@ -124,7 +124,7 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- API Operations Card -->
+        <!-- API Actions Card -->
         <com.google.android.material.card.MaterialCardView
             style="@style/Widget.App.Card"
             android:layout_width="match_parent"
@@ -139,7 +139,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="API Operations"
+                    android:text="API Actions"
                     android:textAppearance="?attr/textAppearanceHeadline6"
                     android:textColor="@color/text_primary"
                     android:textStyle="bold"

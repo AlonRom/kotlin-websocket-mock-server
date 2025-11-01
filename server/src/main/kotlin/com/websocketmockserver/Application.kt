@@ -27,14 +27,14 @@ val json = Json {
 
 @Serializable
 data class ApiRequest(
-    val operation: String,
+    val action: String,
     val data: Map<String, String> = emptyMap(),
     val requestId: String? = null
 )
 
 @Serializable
 data class ApiResponse(
-    val operation: String,
+    val action: String,
     val success: Boolean,
     val data: Map<String, String> = emptyMap(),
     val message: String = "",
@@ -82,13 +82,13 @@ class DynamicOperationRegistry {
     }
 
     suspend fun handle(request: ApiRequest): ApiResponse {
-        val handler = handlers[request.operation.lowercase()]
+        val handler = handlers[request.action.lowercase()]
         return if (handler != null) {
             try {
                 handler.handle(request)
             } catch (e: Exception) {
                 ApiResponse(
-                    operation = request.operation,
+                    action = request.action,
                     success = false,
                     data = emptyMap(),
                     message = "Error handling operation: ${e.message}",
@@ -103,23 +103,23 @@ class DynamicOperationRegistry {
 
     private suspend fun generateDynamicResponse(request: ApiRequest): ApiResponse {
         return when {
-            request.operation.lowercase().contains("get") -> {
+            request.action.lowercase().contains("get") -> {
                 ApiResponse(
-                    operation = request.operation,
+                    action = request.action,
                     success = true,
                     data = mapOf(
                         "timestamp" to System.currentTimeMillis().toString(),
                         "operation_type" to "get",
                         "dynamic_response" to "true",
-                        "requested_operation" to request.operation
+                        "requested_operation" to request.action
                     ),
                     message = "Dynamic GET operation handled successfully",
                     requestId = request.requestId
                 )
             }
-            request.operation.lowercase().contains("subscribe") -> {
+            request.action.lowercase().contains("subscribe") -> {
                 ApiResponse(
-                    operation = request.operation,
+                    action = request.action,
                     success = true,
                     data = mapOf(
                         "subscription_id" to "sub_${System.currentTimeMillis()}",
@@ -130,9 +130,9 @@ class DynamicOperationRegistry {
                     requestId = request.requestId
                 )
             }
-            request.operation.lowercase().contains("unsubscribe") -> {
+            request.action.lowercase().contains("unsubscribe") -> {
                 ApiResponse(
-                    operation = request.operation,
+                    action = request.action,
                     success = true,
                     data = mapOf(
                         "status" to "unsubscribed",
@@ -144,12 +144,12 @@ class DynamicOperationRegistry {
             }
             else -> {
                 ApiResponse(
-                    operation = request.operation,
+                    action = request.action,
                     success = true,
                     data = mapOf(
                         "timestamp" to System.currentTimeMillis().toString(),
                         "dynamic_response" to "true",
-                        "unknown_operation" to request.operation
+                        "unknown_operation" to request.action
                     ),
                     message = "Unknown operation handled dynamically",
                     requestId = request.requestId
@@ -264,7 +264,7 @@ fun main() {
     operationRegistry.register("ping", object : OperationHandler {
         override suspend fun handle(request: ApiRequest): ApiResponse {
             return ApiResponse(
-                operation = request.operation,
+                action = request.action,
                 success = true,
                 data = mapOf("timestamp" to System.currentTimeMillis().toString()),
                 message = "Pong!",
@@ -321,77 +321,10 @@ fun main() {
 
                             var messageHandled = false
                             
-                            // Try to parse as API request (from Android clients)
+                            // Try to parse as broadcast control request (from web UI) - only for start/stop/status actions
                             try {
-                                val apiRequest = json.decodeFromString<ApiRequest>(receivedText)
-                                println("Received API request: ${apiRequest.operation}")
-                                println("API request ID: ${apiRequest.requestId}")
-                                
-                                // Track this request to route response back to this client
-                                if (apiRequest.requestId != null) {
-                                    pendingRequests[apiRequest.requestId] = this
-                                    println("Tracked request ${apiRequest.requestId} for client")
-                                }
-                                
-                                // Forward API request to web UI for manual handling
-                                val webUiMessage = "API_REQUEST:" + json.encodeToString(apiRequest)
-                                println("Forwarding to web UI: $webUiMessage")
-                                connectedClients.forEach { client ->
-                                    if (client != this) { // Send to all clients except the sender (which is the Android app)
-                                        try {
-                                            client.send(webUiMessage) // This sends to the web UI
-                                            println("Successfully sent to web UI client")
-                                        } catch (e: Exception) {
-                                            println("Failed to forward to web UI: $e")
-                                        }
-                                    }
-                                }
-                                
-                                // Don't send automatic response - wait for manual response from web UI
-                                messageHandled = true
-                            } catch (e: Exception) {
-                                println("Not an API request: ${e.message}")
-                                // Not an API request, continue to next check
-                            }
-                            
-                            // Only process further if message wasn't handled as API request
-                            if (!messageHandled) {
-                                // Try to parse as API response (from web UI)
-                                try {
-                                    val apiResponse = json.decodeFromString<ApiResponse>(receivedText)
-                                    println("Received API response: ${apiResponse.operation}")
-                                    println("API response ID: ${apiResponse.requestId}")
-                                    
-                                    // Route response back to the requesting client
-                                    if (apiResponse.requestId != null) {
-                                        val requestingClient = pendingRequests[apiResponse.requestId]
-                                        println("Looking for requesting client for ID: ${apiResponse.requestId}")
-                                        println("Found client: ${requestingClient != null}")
-                                        if (requestingClient != null) {
-                                            try {
-                                                requestingClient.send(json.encodeToString(apiResponse))
-                                                println("Sent response to requesting client")
-                                                pendingRequests.remove(apiResponse.requestId) // Clean up
-                                            } catch (e: Exception) {
-                                                println("Failed to send response to client: $e")
-                                                pendingRequests.remove(apiResponse.requestId) // Clean up
-                                            }
-                                        } else {
-                                            println("No requesting client found for requestId: ${apiResponse.requestId}")
-                                        }
-                                    }
-                                    messageHandled = true
-                                } catch (e: Exception) {
-                                    println("Not an API response: ${e.message}")
-                                    // Not an API response, continue to next check
-                                }
-                            }
-                            
-                            // Only process further if message wasn't handled as API request or response
-                            if (!messageHandled) {
-                                // Try to parse as broadcast control request (from web UI)
-                                try {
-                                    val broadcastRequest = json.decodeFromString<BroadcastControlRequest>(receivedText)
+                                val broadcastRequest = json.decodeFromString<BroadcastControlRequest>(receivedText)
+                                if (broadcastRequest.action.lowercase() in setOf("start", "stop", "status")) {
                                     println("Received broadcast control request: ${broadcastRequest.action}")
                                     
                                     val response = when (broadcastRequest.action.lowercase()) {
@@ -450,9 +383,78 @@ fun main() {
                                     }
                                     
                                     messageHandled = true
+                                }
+                            } catch (e: Exception) {
+                                println("Not a broadcast control request: ${e.message}")
+                                // Not a broadcast control request, continue to next check
+                            }
+                            
+                            // Only process further if message wasn't handled as broadcast control
+                            if (!messageHandled) {
+                                // Try to parse as API request (from Android clients)
+                                try {
+                                    val apiRequest = json.decodeFromString<ApiRequest>(receivedText)
+                                    println("Received API request: ${apiRequest.action}")
+                                    println("API request ID: ${apiRequest.requestId}")
+                                    
+                                    // Track this request to route response back to this client
+                                    if (apiRequest.requestId != null) {
+                                        pendingRequests[apiRequest.requestId] = this
+                                        println("Tracked request ${apiRequest.requestId} for client")
+                                    }
+                                    
+                                    // Forward API request to web UI for manual handling
+                                    val webUiMessage = "API_REQUEST:" + json.encodeToString(apiRequest)
+                                    println("Forwarding to web UI: $webUiMessage")
+                                    connectedClients.forEach { client ->
+                                        if (client != this) { // Send to all clients except the sender (which is the Android app)
+                                            try {
+                                                client.send(webUiMessage) // This sends to the web UI
+                                                println("Successfully sent to web UI client")
+                                            } catch (e: Exception) {
+                                                println("Failed to forward to web UI: $e")
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Don't send automatic response - wait for manual response from web UI
+                                    messageHandled = true
                                 } catch (e: Exception) {
-                                    println("Not a broadcast control request: ${e.message}")
-                                    // Not a broadcast control request, continue to next check
+                                    println("Not an API request: ${e.message}")
+                                    // Not an API request, continue to next check
+                                }
+                            }
+                            
+                            // Only process further if message wasn't handled as API request
+                            if (!messageHandled) {
+                                // Try to parse as API response (from web UI)
+                                try {
+                                    val apiResponse = json.decodeFromString<ApiResponse>(receivedText)
+                                    println("Received API response: ${apiResponse.action}")
+                                    println("API response ID: ${apiResponse.requestId}")
+                                    
+                                    // Route response back to the requesting client
+                                    if (apiResponse.requestId != null) {
+                                        val requestingClient = pendingRequests[apiResponse.requestId]
+                                        println("Looking for requesting client for ID: ${apiResponse.requestId}")
+                                        println("Found client: ${requestingClient != null}")
+                                        if (requestingClient != null) {
+                                            try {
+                                                requestingClient.send(json.encodeToString(apiResponse))
+                                                println("Sent response to requesting client")
+                                                pendingRequests.remove(apiResponse.requestId) // Clean up
+                                            } catch (e: Exception) {
+                                                println("Failed to send response to client: $e")
+                                                pendingRequests.remove(apiResponse.requestId) // Clean up
+                                            }
+                                        } else {
+                                            println("No requesting client found for requestId: ${apiResponse.requestId}")
+                                        }
+                                    }
+                                    messageHandled = true
+                                } catch (e: Exception) {
+                                    println("Not an API response: ${e.message}")
+                                    // Not an API response, continue to next check
                                 }
                             }
                             

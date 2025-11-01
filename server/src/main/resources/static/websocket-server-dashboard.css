@@ -167,7 +167,7 @@ body {
     align-items: center;
 }
 
-.operation-item {
+.action-item {
     background: rgba(42, 42, 42, 0.9);
     padding: 20px;
     margin-bottom: 16px;
@@ -179,18 +179,18 @@ body {
     gap: 16px;
 }
 
-.operation-content {
+.action-content {
     flex: 1;
 }
 
-.operation-title {
+.action-title {
     color: #FFFFFF;
     font-size: 16px;
     font-weight: bold;
     margin-bottom: 4px;
 }
 
-.operation-description {
+.action-description {
     color: #E2E8F0;
     font-size: 14px;
     opacity: 0.8;
@@ -315,7 +315,7 @@ input::placeholder, textarea::placeholder {
     flex: 1;
 }
 
-.operation-data {
+.action-data {
     background: rgba(26, 26, 26, 0.7);
     padding: 16px;
     border-radius: 12px;

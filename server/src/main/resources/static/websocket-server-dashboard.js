@@ -225,29 +225,29 @@ function addMessage(text, type) {
 function handleApiRequest(apiRequestJson) {
     try {
         const apiRequest = JSON.parse(apiRequestJson);
-        addMessage(`Server received API request: ${apiRequest.operation}`, MessageType.SERVER_MESSAGE);
+        addMessage(`Server received API request: ${apiRequest.action}`, MessageType.SERVER_MESSAGE);
         
         const container = document.getElementById('apiRequestsContainer');
         container.innerHTML = '';
         
-        const operationDiv = document.createElement('div');
-        operationDiv.className = 'operation-item';
-        operationDiv.innerHTML = `
-            <div class="operation-content">
-                <div class="operation-title">${apiRequest.operation}</div>
-                <div class="operation-description">API Request from client</div>
+        const actionDiv = document.createElement('div');
+        actionDiv.className = 'action-item';
+        actionDiv.innerHTML = `
+            <div class="action-content">
+                <div class="action-title">${apiRequest.action}</div>
+                <div class="action-description">API Request from client</div>
             </div>
-            <div class="operation-data">${JSON.stringify(apiRequest, null, 2)}</div>
+            <div class="action-data">${JSON.stringify(apiRequest, null, 2)}</div>
             <div class="response-section">
                 <textarea id="responseInput" placeholder="Enter response JSON..." rows="4"></textarea>
                 <button type="button" class="button send-api-response-btn" data-request-id="${apiRequest.requestId}">Send Response</button>
             </div>
         `;
         
-        container.appendChild(operationDiv);
+        container.appendChild(actionDiv);
         
         // Attach event listener to the dynamically created button
-        const responseBtn = operationDiv.querySelector('.send-api-response-btn');
+        const responseBtn = actionDiv.querySelector('.send-api-response-btn');
         if (responseBtn) {
             responseBtn.addEventListener('click', function() {
                 sendApiResponse(this.getAttribute('data-request-id'));
@@ -265,9 +265,9 @@ function handleApiRequest(apiRequestJson) {
 
 function generateDefaultResponse(apiRequest) {
     return {
-        operation: apiRequest.operation,
+        action: apiRequest.action,
         success: true,
-        message: `${apiRequest.operation} completed successfully`,
+        message: `${apiRequest.action} completed successfully`,
         requestId: apiRequest.requestId,
         data: apiRequest.data || null
     };
@@ -281,7 +281,7 @@ function sendApiResponse(requestId) {
         try {
             const response = JSON.parse(responseText);
             ws.send(JSON.stringify(response));
-            addMessage(`Server sent: API Response ${response.operation}`, MessageType.SERVER_MESSAGE);
+            addMessage(`Server sent: API Response ${response.action}`, MessageType.SERVER_MESSAGE);
             
             // Clear the API requests container
             document.getElementById('apiRequestsContainer').innerHTML = 
