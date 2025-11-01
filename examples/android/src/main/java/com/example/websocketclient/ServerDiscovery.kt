@@ -4,6 +4,8 @@ import android.util.Log
 import kotlinx.coroutines.*
 import java.net.*
 import java.io.IOException
+import kotlinx.serialization.*
+import kotlinx.serialization.json.*
 
 data class DiscoveredServer(
     val name: String,
@@ -51,8 +53,10 @@ class ServerDiscovery(
     }
     
     private fun startUdpDiscovery() {
+        Log.d(TAG, "About to start UDP discovery")
         discoveryJob = CoroutineScope(Dispatchers.IO).launch {
             try {
+                Log.d(TAG, "Creating DatagramSocket on port $DISCOVERY_PORT")
                 val socket = DatagramSocket(DISCOVERY_PORT)
                 socket.reuseAddress = true
                 socket.broadcast = true
@@ -68,7 +72,7 @@ class ServerDiscovery(
                         val message = String(packet.data, 0, packet.length)
                         Log.d(TAG, "Received UDP broadcast from ${packet.address}: $message")
                         
-                        parseBroadcastMessage(message)?.let { server ->
+                        parseBroadcastMessage(message).forEach { server ->
                             addServer(server)
                         }
                     } catch (e: Exception) {
@@ -282,7 +286,7 @@ class ServerDiscovery(
         val removedServers = mutableListOf<String>()
         val currentTime = System.currentTimeMillis()
         
-        discoveredServers.entries.removeIf { (key, server) ->
+        discoveredServers.entries.removeIf { (_, server) ->
             val isOld = currentTime - server.timestamp > 15000 // Remove after 15 seconds (longer than isRecent check)
             if (isOld) {
                 removedServers.add(server.name)
@@ -299,19 +303,78 @@ class ServerDiscovery(
         }
     }
 
-    private fun parseBroadcastMessage(message: String): DiscoveredServer? {
+    private fun parseBroadcastMessage(message: String): List<DiscoveredServer> {
         return try {
-            if (message.startsWith("WEBSOCKET_SERVER:")) {
+            // Try to parse as JSON first
+            if (message.trim().startsWith("{")) {
+                Log.d(TAG, "Parsing as JSON broadcast message")
+                val json = Json { ignoreUnknownKeys = true; isLenient = true }
+                val jsonElement = json.parseToJsonElement(message)
+                val urls = findUrlsInJson(jsonElement, mutableListOf())
+                
+                Log.d(TAG, "Found ${urls.size} URLs in broadcast message")
+                
+                if (urls.isEmpty()) {
+                    // No URLs found in JSON, don't parse it
+                    Log.w(TAG, "No URLs found in JSON broadcast message")
+                    return emptyList()
+                }
+                
+                val servers = mutableListOf<DiscoveredServer>()
+                urls.forEach { url ->
+                    if (url.isNotEmpty()) {
+                        val serverName = url.substringAfter("ws://").substringBefore("/")
+                        Log.d(TAG, "Adding server from broadcast: $serverName at $url")
+                        servers.add(DiscoveredServer(
+                            name = serverName,
+                            wsUrl = url,
+                            discoveryMethod = "UDP Broadcast"
+                        ))
+                    }
+                }
+                Log.d(TAG, "Parsed ${servers.size} servers from broadcast")
+                servers
+            } 
+            // Fall back to legacy format
+            else if (message.startsWith("WEBSOCKET_SERVER:")) {
                 val wsUrl = message.substringAfter("WEBSOCKET_SERVER:")
                 val serverName = "Server at ${wsUrl.substringAfter("ws://").substringBefore("/ws")}"
-                DiscoveredServer(serverName, wsUrl, discoveryMethod = "UDP")
-            } else {
-                null
+                listOf(DiscoveredServer(serverName, wsUrl, discoveryMethod = "UDP"))
+            } 
+            else {
+                emptyList()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse broadcast message: $message", e)
-            null
+            emptyList()
         }
+    }
+    
+    private fun findUrlsInJson(element: JsonElement, urls: MutableList<String>): List<String> {
+        when (element) {
+            is JsonObject -> {
+                // Check if this object has a "url" property
+                element["url"]?.let { urlElement ->
+                    if (urlElement is JsonPrimitive && urlElement.isString) {
+                        urls.add(urlElement.content)
+                    }
+                }
+                // Recursively search all properties
+                element.forEach { (_, value) ->
+                    findUrlsInJson(value, urls)
+                }
+            }
+            is JsonArray -> {
+                // Recursively search all elements
+                element.forEach { item ->
+                    findUrlsInJson(item, urls)
+                }
+            }
+            else -> {
+                // JsonPrimitive, JsonNull, etc. - no URLs here
+            }
+        }
+        return urls
     }
 
     fun getDiscoveredServers(): List<DiscoveredServer> {
