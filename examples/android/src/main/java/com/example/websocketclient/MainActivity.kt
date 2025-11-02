@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupApiCallbacks() {
-        // Register callbacks for the 4 specific operations
+        // Register callbacks for the 4 specific actions
         dynamicApiClient.registerCallback("getConfiguration", object : ApiCallback {
             override fun onSuccess(data: Map<String, String>, message: String) {
                 runOnUiThread {
@@ -187,7 +187,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Dynamic API Operation buttons
+        // Dynamic API Actions buttons
         binding.pingButton.setOnClickListener {
             sendDynamicApiRequest("getConfiguration")
         }
@@ -267,14 +267,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun sendDynamicApiRequest(operation: String, data: Map<String, String> = emptyMap()) {
+    private fun sendDynamicApiRequest(action: String, data: Map<String, String> = emptyMap()) {
         try {
-            val jsonRequest = dynamicApiClient.sendRequest(operation, data)
+            val jsonRequest = dynamicApiClient.sendRequest(action, data)
             webSocket?.send(jsonRequest)
             Log.d(TAG, "Sent dynamic API request: $jsonRequest")
             
             // Add request to messages
-            val displayMessage = "Client Sent: $operation"
+            val displayMessage = "Client Sent: $action"
             viewModel.addMessage(WebSocketMessage(displayMessage, System.currentTimeMillis(), MessageType.CLIENT))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send dynamic API request", e)

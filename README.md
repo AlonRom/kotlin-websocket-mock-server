@@ -126,7 +126,7 @@ The Android app automatically discovers the server on your network and provides 
 - **Automatic Server Discovery**: Discovers servers via UDP broadcast
 - **Manual Connection**: Connect to any WebSocket server manually
 - **Real-time Messaging**: Send and receive messages in real-time
-- **API Testing**: Test various API operations with dynamic responses
+- **API Testing**: Test various API actions with dynamic responses
 - **Modern UI**: Material Design 3 with dark theme
 - **Emulator Detection**: Automatically detects emulator environments
 

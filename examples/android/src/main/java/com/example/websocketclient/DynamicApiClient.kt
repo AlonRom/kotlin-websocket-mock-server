@@ -6,36 +6,36 @@ import kotlinx.serialization.json.*
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-// Callback interface for API operations
+// Callback interface for API actions
 interface ApiCallback {
     fun onSuccess(data: Map<String, String>, message: String)
     fun onError(error: String)
 }
 
-// Dynamic API Client that manages operations and callbacks
+// Dynamic API Client that manages actions and callbacks
 class DynamicApiClient {
     private val callbacks = ConcurrentHashMap<String, ApiCallback>()
     private val pendingRequests = ConcurrentHashMap<String, ApiCallback>()
     
-    // Register a callback for a specific operation
-    fun registerCallback(operation: String, callback: ApiCallback) {
-        callbacks[operation.lowercase()] = callback
+    // Register a callback for a specific action
+    fun registerCallback(action: String, callback: ApiCallback) {
+        callbacks[action.lowercase()] = callback
     }
     
-    // Unregister a callback for a specific operation
-    fun unregisterCallback(operation: String) {
-        callbacks.remove(operation.lowercase())
+    // Unregister a callback for a specific action
+    fun unregisterCallback(action: String) {
+        callbacks.remove(action.lowercase())
     }
     
     // Send an API request and handle the response
     fun sendRequest(
-        operation: String, 
+        action: String, 
         data: Map<String, String> = emptyMap(),
         callback: ApiCallback? = null
     ): String {
         val requestId = UUID.randomUUID().toString()
         val request = ApiRequest(
-            action = operation,
+            action = action,
             data = data,
             requestId = requestId
         )
@@ -65,13 +65,13 @@ class DynamicApiClient {
                 return
             }
             
-            // If no specific callback, check for operation-based callback
-            val operationCallback = callbacks[response.action.lowercase()]
-            if (operationCallback != null) {
+            // If no specific callback, check for action-based callback
+            val actionCallback = callbacks[response.action.lowercase()]
+            if (actionCallback != null) {
                 if (response.success) {
-                    operationCallback.onSuccess(response.data, response.message)
+                    actionCallback.onSuccess(response.data, response.message)
                 } else {
-                    operationCallback.onError(response.message)
+                    actionCallback.onError(response.message)
                 }
             }
         } catch (e: Exception) {

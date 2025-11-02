@@ -68,17 +68,17 @@ data class BroadcastStatus(
     val port: Int? = null
 )
 
-// Dynamic operation handler interface
-interface OperationHandler {
+// Dynamic action handler interface
+interface ActionHandler {
     suspend fun handle(request: ApiRequest): ApiResponse
 }
 
-// Dynamic operation registry
-class DynamicOperationRegistry {
-    private val handlers = mutableMapOf<String, OperationHandler>()
+// Dynamic action registry
+class DynamicActionRegistry {
+    private val handlers = mutableMapOf<String, ActionHandler>()
 
-    fun register(operation: String, handler: OperationHandler) {
-        handlers[operation.lowercase()] = handler
+    fun register(action: String, handler: ActionHandler) {
+        handlers[action.lowercase()] = handler
     }
 
     suspend fun handle(request: ApiRequest): ApiResponse {
@@ -91,12 +91,12 @@ class DynamicOperationRegistry {
                     action = request.action,
                     success = false,
                     data = emptyMap(),
-                    message = "Error handling operation: ${e.message}",
+                    message = "Error handling action: ${e.message}",
                     requestId = request.requestId
                 )
             }
         } else {
-            // Generate a dynamic response for unknown operations
+            // Generate a dynamic response for unknown actions
             generateDynamicResponse(request)
         }
     }
@@ -109,11 +109,11 @@ class DynamicOperationRegistry {
                     success = true,
                     data = mapOf(
                         "timestamp" to System.currentTimeMillis().toString(),
-                        "operation_type" to "get",
+                        "action_type" to "get",
                         "dynamic_response" to "true",
-                        "requested_operation" to request.action
+                        "requested_action" to request.action
                     ),
-                    message = "Dynamic GET operation handled successfully",
+                    message = "Dynamic GET action handled successfully",
                     requestId = request.requestId
                 )
             }
@@ -149,9 +149,9 @@ class DynamicOperationRegistry {
                     data = mapOf(
                         "timestamp" to System.currentTimeMillis().toString(),
                         "dynamic_response" to "true",
-                        "unknown_operation" to request.action
+                        "unknown_action" to request.action
                     ),
-                    message = "Unknown operation handled dynamically",
+                    message = "Unknown action handled dynamically",
                     requestId = request.requestId
                 )
             }
@@ -256,12 +256,12 @@ class BroadcastController {
 
 fun main() {
     val connectedClients = CopyOnWriteArrayList<DefaultWebSocketSession>()
-    val operationRegistry = DynamicOperationRegistry()
+    val actionRegistry = DynamicActionRegistry()
     val pendingRequests = mutableMapOf<String, DefaultWebSocketSession>() // Track requestId -> client
     val broadcastController = BroadcastController()
     
     // Register some example handlers (optional - for demonstration)
-    operationRegistry.register("ping", object : OperationHandler {
+    actionRegistry.register("ping", object : ActionHandler {
         override suspend fun handle(request: ApiRequest): ApiResponse {
             return ApiResponse(
                 action = request.action,
