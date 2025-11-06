@@ -175,8 +175,11 @@ body {
     border: 1px solid rgba(58, 58, 58, 0.5);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 16px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .action-content {
@@ -324,14 +327,47 @@ input::placeholder, textarea::placeholder {
     font-size: 12px;
     border: 1px solid rgba(58, 58, 58, 0.5);
     color: #E2E8F0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    max-width: 100%;
+    overflow-x: auto;
+    box-sizing: border-box;
 }
 
 .response-section {
     margin-top: 16px;
     padding-top: 16px;
     border-top: 1px solid rgba(58, 58, 58, 0.5);
+    width: 100%;
+    box-sizing: border-box;
 }
 
+.response-section textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 100px;
+    max-height: 400px;
+    overflow-y: auto;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.response-section .button {
+    width: 100%;
+    box-sizing: border-box;
+    margin-right: 0;
+    margin-top: 12px;
+}
+
+
+#apiRequestsContainer {
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+    min-height: 0;
+}
 
 .no-requests {
     color: #CBD5E1;

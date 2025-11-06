@@ -228,19 +228,38 @@ function handleApiRequest(apiRequestJson) {
         addMessage(`Server received API request: ${apiRequest.action}`, MessageType.SERVER_MESSAGE);
         
         const container = document.getElementById('apiRequestsContainer');
-        container.innerHTML = '';
+        
+        // Remove "no requests" message if it exists
+        const noRequestsMsg = container.querySelector('.no-requests');
+        if (noRequestsMsg) {
+            noRequestsMsg.remove();
+        }
+        
+        // Check if this request already exists (prevent duplicates)
+        const existingItem = container.querySelector(`[data-request-id="${apiRequest.requestId}"]`);
+        if (existingItem) {
+            // Request already exists, skip adding duplicate
+            return;
+        }
+        
+        // Create unique IDs based on requestId
+        const requestId = apiRequest.requestId || generateRequestId();
+        const responseInputId = `responseInput-${requestId}`;
+        const actionItemId = `action-item-${requestId}`;
         
         const actionDiv = document.createElement('div');
         actionDiv.className = 'action-item';
+        actionDiv.id = actionItemId;
+        actionDiv.setAttribute('data-request-id', requestId);
         actionDiv.innerHTML = `
             <div class="action-content">
                 <div class="action-title">${apiRequest.action}</div>
-                <div class="action-description">API Request from client</div>
+                <div class="action-description">API Request from client (ID: ${requestId})</div>
             </div>
             <div class="action-data">${JSON.stringify(apiRequest, null, 2)}</div>
             <div class="response-section">
-                <textarea id="responseInput" placeholder="Enter response JSON..." rows="4"></textarea>
-                <button type="button" class="button send-api-response-btn" data-request-id="${apiRequest.requestId}">Send Response</button>
+                <textarea id="${responseInputId}" placeholder="Enter response JSON..." rows="4"></textarea>
+                <button type="button" class="button send-api-response-btn" data-request-id="${requestId}">Send Response</button>
             </div>
         `;
         
@@ -256,7 +275,7 @@ function handleApiRequest(apiRequestJson) {
         
         // Auto-generate default response
         const defaultResponse = generateDefaultResponse(apiRequest);
-        document.getElementById('responseInput').value = JSON.stringify(defaultResponse, null, 2);
+        document.getElementById(responseInputId).value = JSON.stringify(defaultResponse, null, 2);
         
     } catch (error) {
         addMessage(`Server: Error parsing API request ${error}`, MessageType.ERROR);
@@ -274,22 +293,40 @@ function generateDefaultResponse(apiRequest) {
 }
 
 function sendApiResponse(requestId) {
-    const responseInput = document.getElementById('responseInput');
+    const responseInputId = `responseInput-${requestId}`;
+    const responseInput = document.getElementById(responseInputId);
+    
+    if (!responseInput) {
+        addMessage(`Server: Response input not found for request ${requestId}`, MessageType.ERROR);
+        return;
+    }
+    
     const responseText = responseInput.value.trim();
     
     if (responseText && ws && ws.readyState === WebSocket.OPEN) {
         try {
             const response = JSON.parse(responseText);
             ws.send(JSON.stringify(response));
-            addMessage(`Server sent: API Response ${response.action}`, MessageType.SERVER_MESSAGE);
+            addMessage(`Server sent: API Response ${response.action} (ID: ${requestId})`, MessageType.SERVER_MESSAGE);
             
-            // Clear the API requests container
-            document.getElementById('apiRequestsContainer').innerHTML = 
-                '<p class="no-requests">No pending API requests</p>';
+            // Remove only the specific request item
+            const actionItemId = `action-item-${requestId}`;
+            const actionItem = document.getElementById(actionItemId);
+            if (actionItem) {
+                actionItem.remove();
+            }
+            
+            // Show "no requests" message if container is now empty
+            const container = document.getElementById('apiRequestsContainer');
+            if (container.children.length === 0) {
+                container.innerHTML = '<p class="no-requests">No pending API requests</p>';
+            }
                 
         } catch (error) {
             addMessage(`Server: Error sending API response ${error}`, MessageType.ERROR);
         }
+    } else if (!responseText) {
+        addMessage(`Server: Response text is empty for request ${requestId}`, MessageType.ERROR);
     }
 }
 
