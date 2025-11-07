@@ -14,7 +14,7 @@ dependencies {
 }
 
 application {
-    mainClass.set("com.websocketmockserver.ApplicationKt")
+    mainClass.set("com.websocketmockserver.MockServerKt")
 }
 
 // Add wrapper task to fix Android Studio wrapper task error

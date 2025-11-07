@@ -28,7 +28,7 @@ subprojects {
         }
         
         application {
-            mainClass.set("com.websocketmockserver.ApplicationKt")
+            mainClass.set("com.websocketmockserver.MockServerKt")
         }
     }
 }
