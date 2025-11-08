@@ -4,38 +4,25 @@ import java.net.Inet4Address
 import java.net.NetworkInterface
 
 fun getLocalIpAddress(): String? {
-    return try {
+    return runCatching {
         val interfaces = NetworkInterface.getNetworkInterfaces()
-        val validInterfaces = interfaces.toList().filter { it.isUp && !it.isLoopback }
+            ?.asSequence()
+            ?.filter { it.isUp && !it.isLoopback && !it.isVirtual }
+            ?.toList()
+            ?: emptyList()
 
-        validInterfaces.forEach { iface ->
-            iface.inetAddresses.asSequence()
-                .filterIsInstance<Inet4Address>()
-                .firstOrNull { address ->
-                    !address.isLoopbackAddress && !address.hostAddress.startsWith("169.254.")
-                }
-                ?.let { return it.hostAddress }
-        }
+        val ipv4Addresses = interfaces
+            .flatMap { iface -> iface.inetAddresses.asSequence().filterIsInstance<Inet4Address>() }
+            .toList()
 
-        validInterfaces.forEach { iface ->
-            iface.inetAddresses.asSequence()
-                .filterIsInstance<Inet4Address>()
-                .firstOrNull { !it.isLoopbackAddress }
-                ?.let { return it.hostAddress }
-        }
-
-        null
-    } catch (e: Exception) {
-        println("Failed to get local IP: $e")
+        ipv4Addresses.firstOrNull { it.isPreferredAddress() }?.hostAddress
+            ?: ipv4Addresses.firstOrNull { !it.isLoopbackAddress }?.hostAddress
+    }.getOrElse {
+        println("Failed to get local IP: ${it.message}")
         null
     }
 }
 
-private fun <T> java.util.Enumeration<T>.toList(): List<T> {
-    val list = mutableListOf<T>()
-    while (hasMoreElements()) {
-        list.add(nextElement())
-    }
-    return list
+private fun Inet4Address.isPreferredAddress(): Boolean {
+    return !isLoopbackAddress && !isLinkLocalAddress
 }
-
