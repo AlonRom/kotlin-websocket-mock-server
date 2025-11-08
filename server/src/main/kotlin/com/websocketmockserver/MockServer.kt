@@ -1,9 +1,5 @@
 package com.websocketmockserver
 
-import com.websocketmockserver.actions.ActionHandler
-import com.websocketmockserver.actions.DynamicActionRegistry
-import com.websocketmockserver.models.ApiRequest
-import com.websocketmockserver.models.ApiResponse
 import com.websocketmockserver.services.BroadcastService
 import com.websocketmockserver.services.WebSocketSessionService
 import io.ktor.server.application.install
@@ -18,39 +14,42 @@ import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
+private const val SERVER_HOST = "0.0.0.0"
+private const val SERVER_PORT = 8081
+private const val WEBSOCKET_PATH = "/ws"
+private const val STATIC_ROUTE = "/"
+private const val STATIC_RESOURCES = "static"
+private const val DEFAULT_PING_PERIOD_SECONDS = 15L
+private const val DEFAULT_SOCKET_TIMEOUT_SECONDS = 30L
+
+/**
+ * Bootstraps the mock WebSocket server by wiring shared services and launching the Ktor engine
+ * with websocket + static resource support.
+ */
 fun main() {
+    // Configure lenient JSON parser shared across websocket sessions.
     val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
     }
 
+    // Maintain shared references to connected sessions and pending request callbacks.
     val connectedClients = CopyOnWriteArrayList<DefaultWebSocketSession>()
     val pendingRequests = ConcurrentHashMap<String, DefaultWebSocketSession>()
     val broadcastService = BroadcastService()
-    val actionRegistry = DynamicActionRegistry()
 
-    actionRegistry.register("ping", object : ActionHandler {
-        override suspend fun handle(request: ApiRequest): ApiResponse {
-            return ApiResponse(
-                action = request.action,
-                success = true,
-                data = mapOf("timestamp" to System.currentTimeMillis().toString()),
-                message = "Pong!",
-                requestId = request.requestId
-            )
-        }
-    })
-
-    embeddedServer(Netty, port = 8081, host = "0.0.0.0") {
+    embeddedServer(Netty, port = SERVER_PORT, host = SERVER_HOST) {
+        // Enable websocket support with generous timeouts for mobile clients.
         install(WebSockets) {
-            pingPeriod = Duration.ofSeconds(15)
-            timeout = Duration.ofSeconds(30)
+            pingPeriod = Duration.ofSeconds(DEFAULT_PING_PERIOD_SECONDS)
+            timeout = Duration.ofSeconds(DEFAULT_SOCKET_TIMEOUT_SECONDS)
             maxFrameSize = Long.MAX_VALUE
             masking = false
         }
 
         routing {
-            webSocket("/ws") {
+            // Single websocket endpoint handling all interactive clients (dashboard and mobile).
+            webSocket(WEBSOCKET_PATH) {
                 WebSocketSessionService(
                     session = this,
                     connectedClients = connectedClients,
@@ -60,7 +59,8 @@ fun main() {
                 ).handle()
             }
 
-            staticResources("/", "static")
+            // Serve static dashboard assets from bundled resources.
+            staticResources(STATIC_ROUTE, STATIC_RESOURCES)
         }
     }.start(wait = true)
 }
