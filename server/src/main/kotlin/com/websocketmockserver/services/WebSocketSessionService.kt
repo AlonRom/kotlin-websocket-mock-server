@@ -10,11 +10,17 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
+/**
+ * Orchestrates the lifecycle of a single WebSocket client: routing control messages,
+ * relaying API traffic, and mirroring broadcast metadata for the dashboard.
+ */
 class WebSocketSessionService(
     private val session: DefaultWebSocketSession,
     private val connectedClients: CopyOnWriteArrayList<DefaultWebSocketSession>,
@@ -23,6 +29,25 @@ class WebSocketSessionService(
     private val json: Json
 ) {
 
+    private companion object {
+        private const val EVENT_CLIENT_CONNECTED = "CLIENT_CONNECTED:Client"
+        private const val EVENT_CLIENT_DISCONNECTED = "CLIENT_DISCONNECTED:Client"
+        private const val CLIENT_COUNT_PREFIX = "CLIENT_COUNT:"
+        private const val API_REQUEST_PREFIX = "API_REQUEST:"
+        private const val SERVER_IP_PREFIX = "SERVER_IP:"
+        private const val GET_SERVER_IP_COMMAND = "GET_SERVER_IP"
+        private const val DEFAULT_BROADCAST_INTERVAL_MS = 10000L
+        private const val DEFAULT_BROADCAST_PORT = 2505
+        private const val DEFAULT_BROADCAST_MESSAGE = """{"url":"ws://10.100.102.67:8081/ws"}"""
+        private const val ACTION_START = "start"
+        private const val ACTION_STOP = "stop"
+        private const val ACTION_STATUS = "status"
+        private val VALID_BROADCAST_ACTIONS = setOf(ACTION_START, ACTION_STOP, ACTION_STATUS)
+    }
+
+    /**
+     * Main entrypoint for the session. Starts lifecycle hooks and streams incoming frames.
+     */
     suspend fun handle() {
         onConnect()
         try {
@@ -36,15 +61,21 @@ class WebSocketSessionService(
         }
     }
 
+    /**
+     * Registers the session and notifies the dashboard of the updated participant count.
+     */
     private suspend fun onConnect() {
         println("Client connected: $session")
         connectedClients.add(session)
         broadcastService.updateClients(connectedClients.toList())
 
         sendClientCount(session)
-        notifyOtherClients("CLIENT_CONNECTED:Client")
+        notifyOtherClients(EVENT_CLIENT_CONNECTED)
     }
 
+    /**
+     * Cleans up session state when a client exits and broadcasts the departure.
+     */
     private suspend fun onDisconnect() {
         println("Client disconnected: $session")
         connectedClients.remove(session)
@@ -52,9 +83,12 @@ class WebSocketSessionService(
 
         pendingRequests.entries.removeIf { it.value == session }
 
-        notifyOtherClients("CLIENT_DISCONNECTED:Client")
+        notifyOtherClients(EVENT_CLIENT_DISCONNECTED)
     }
 
+    /**
+     * Routes each text frame to the appropriate handler.
+     */
     private suspend fun processIncoming(message: String) {
         println("Received from client: $message")
         println("Number of connected clients: ${connectedClients.size}")
@@ -67,19 +101,23 @@ class WebSocketSessionService(
         }
     }
 
+    /**
+     * Parses and executes broadcast control commands (start/stop/status).
+     */
     private suspend fun handleBroadcastControl(message: String): Boolean {
         return try {
-            val request = json.decodeFromString(BroadcastControlRequest.serializer(), message)
-            if (request.action.lowercase() !in setOf("start", "stop", "status")) {
+            val request = json.decodeFromString<BroadcastControlRequest>(message)
+            val action = request.action.lowercase(Locale.getDefault())
+            if (action !in VALID_BROADCAST_ACTIONS) {
                 return false
             }
 
             println("Received broadcast control request: ${request.action}")
 
-            val response = when (request.action.lowercase()) {
-                "start" -> handleBroadcastStart(request)
-                "stop" -> handleBroadcastStop(request)
-                "status" -> {
+            val response = when (action) {
+                ACTION_START -> handleBroadcastStart(request)
+                ACTION_STOP -> handleBroadcastStop(request)
+                ACTION_STATUS -> {
                     sendBroadcastStatus(request)
                     return true
                 }
@@ -100,11 +138,13 @@ class WebSocketSessionService(
         }
     }
 
+    /**
+     * Begins broadcasting with supplied overrides or default values.
+     */
     private fun handleBroadcastStart(request: BroadcastControlRequest): BroadcastControlResponse {
-        val interval = request.interval ?: 2000L
-        val messageTemplate = request.message
-            ?: "{\"type\":\"broadcast\",\"timestamp\":%d,\"messageNumber\":%d,\"clients\":%d}"
-        val port = request.port ?: 2505
+        val interval = request.interval ?: DEFAULT_BROADCAST_INTERVAL_MS
+        val messageTemplate = request.message ?: DEFAULT_BROADCAST_MESSAGE
+        val port = request.port ?: DEFAULT_BROADCAST_PORT
 
         broadcastService.startBroadcast(
             connectedClients.toList(),
@@ -114,27 +154,33 @@ class WebSocketSessionService(
         )
 
         return BroadcastControlResponse(
-            action = "start",
+            action = ACTION_START,
             success = true,
             message = "Broadcast started with interval: ${interval}ms, port: ${port}",
             requestId = request.requestId
         )
     }
 
+    /**
+     * Stops the active broadcast if one is running.
+     */
     private fun handleBroadcastStop(request: BroadcastControlRequest): BroadcastControlResponse {
         broadcastService.stopBroadcast()
         return BroadcastControlResponse(
-            action = "stop",
+            action = ACTION_STOP,
             success = true,
             message = "Broadcast stopped",
             requestId = request.requestId
         )
     }
 
+    /**
+     * Replies to the requester with the latest broadcast status.
+     */
     private suspend fun sendBroadcastStatus(request: BroadcastControlRequest) {
         val status = broadcastService.getStatus()
         val response = BroadcastControlResponse(
-            action = "status",
+            action = ACTION_STATUS,
             success = true,
             message = "Broadcast status retrieved",
             requestId = request.requestId
@@ -149,9 +195,12 @@ class WebSocketSessionService(
         session.send(combinedResponse)
     }
 
+    /**
+     * Forwards API requests from external clients to the dashboard and tracks pending replies.
+     */
     private suspend fun handleApiRequest(message: String): Boolean {
         return try {
-            val apiRequest = json.decodeFromString(ApiRequest.serializer(), message)
+            val apiRequest = json.decodeFromString<ApiRequest>(message)
             println("Received API request: ${apiRequest.action}")
             println("API request ID: ${apiRequest.requestId}")
 
@@ -160,7 +209,7 @@ class WebSocketSessionService(
                 println("Tracked request $requestId for client")
             }
 
-            val webUiMessage = "API_REQUEST:" + json.encodeToString(apiRequest)
+            val webUiMessage = API_REQUEST_PREFIX + json.encodeToString(apiRequest)
             println("Forwarding to web UI: $webUiMessage")
             connectedClients.forEach { client ->
                 if (client != session) {
@@ -180,9 +229,12 @@ class WebSocketSessionService(
         }
     }
 
+    /**
+     * Delivers responses originating from the dashboard back to the original requester.
+     */
     private suspend fun handleApiResponse(message: String): Boolean {
         return try {
-            val apiResponse = json.decodeFromString(ApiResponse.serializer(), message)
+            val apiResponse = json.decodeFromString<ApiResponse>(message)
             println("Received API response: ${apiResponse.action}")
             println("API response ID: ${apiResponse.requestId}")
 
@@ -210,11 +262,14 @@ class WebSocketSessionService(
         }
     }
 
+    /**
+     * Handles auxiliary commands such as IP discovery; otherwise re-broadcasts payloads.
+     */
     private suspend fun handleSpecialMessage(message: String) {
         when (message) {
-            "GET_SERVER_IP" -> {
+            GET_SERVER_IP_COMMAND -> {
                 val localIp = getLocalIpAddress().orEmpty().ifBlank { "127.0.0.1" }
-                val response = "SERVER_IP:$localIp"
+                val response = SERVER_IP_PREFIX + localIp
                 try {
                     session.send(response)
                     println("Sent server IP: $localIp")
@@ -227,6 +282,9 @@ class WebSocketSessionService(
         }
     }
 
+    /**
+     * Fan-outs arbitrary messages to every other connected client.
+     */
     private suspend fun broadcastMessageToOthers(message: String) {
         println("Received regular message: $message")
         println("Broadcasting to ${connectedClients.size} clients")
@@ -246,6 +304,9 @@ class WebSocketSessionService(
         println("Broadcast completed: $successCount/${connectedClients.size - 1} clients received the message")
     }
 
+    /**
+     * Notifies peers about lifecycle events and keeps their client counts fresh.
+     */
     private suspend fun notifyOtherClients(message: String) {
         connectedClients.forEach { client ->
             if (client != session) {
@@ -259,9 +320,12 @@ class WebSocketSessionService(
         }
     }
 
+    /**
+     * Sends the current participant count to the specified session.
+     */
     private suspend fun sendClientCount(target: DefaultWebSocketSession) {
         try {
-            target.send("CLIENT_COUNT:${connectedClients.size}")
+            target.send("$CLIENT_COUNT_PREFIX${connectedClients.size}")
         } catch (e: Exception) {
             println("Failed to send client count: $e")
         }

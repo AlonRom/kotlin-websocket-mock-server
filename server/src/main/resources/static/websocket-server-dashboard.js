@@ -541,7 +541,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Broadcast control buttons
     const startBroadcastBtn = document.getElementById('startBroadcastBtn');
     const stopBroadcastBtn = document.getElementById('stopBroadcastBtn');
-    const getBroadcastStatusBtn = document.getElementById('getBroadcastStatusBtn');
     
     if (startBroadcastBtn) {
         startBroadcastBtn.addEventListener('click', startBroadcast);
@@ -549,10 +548,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (stopBroadcastBtn) {
         stopBroadcastBtn.addEventListener('click', stopBroadcast);
-    }
-    
-    if (getBroadcastStatusBtn) {
-        getBroadcastStatusBtn.addEventListener('click', getBroadcastStatus);
     }
     
     // Message control buttons
@@ -570,7 +565,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set default broadcast message template
     const broadcastMessage = document.getElementById('broadcastMessage');
     if (broadcastMessage && !broadcastMessage.value) {
-        broadcastMessage.value = '{"type":"broadcast","timestamp":%d,"messageNumber":%d,"clients":%d}';
+        broadcastMessage.value = '{"url":"ws://10.100.102.67:8081/ws"}';
     }
     
     // Note: Default UDP port is 2505 for server discovery
