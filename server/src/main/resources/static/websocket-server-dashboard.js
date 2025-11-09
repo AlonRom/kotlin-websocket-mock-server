@@ -37,9 +37,6 @@ const ServerMessages = {
     GET_SERVER_IP: 'GET_SERVER_IP'
 };
 
-// Broadcast control state
-let broadcastActive = false;
-
 // Message icons mapping
 const MessageIcons = {
     [MessageType.SERVER_MESSAGE]: '🗄️',
@@ -66,7 +63,6 @@ function parseServerMessage(message) {
 }
 
 let ws;
-let clientCount = 0;
 
 function updateSocketStatus(status, clients) {
     const statusElement = document.getElementById('socketConnectionStatus');
@@ -168,7 +164,6 @@ function connect() {
             case 'CLIENT_COUNT':
                 const count = parseInt(parsedMessage.payload);
                 console.log('Received CLIENT_COUNT:', count, 'Other clients:', Math.max(0, count - 1));
-                clientCount = Math.max(0, count - 1);
                 updateClientCount(count);
                 break;
             case 'API_REQUEST':
@@ -512,32 +507,14 @@ function updateBroadcastStatus(status) {
     if (status.isActive) {
         startBtn.disabled = true;
         stopBtn.disabled = false;
-        broadcastActive = true;
     } else {
         startBtn.disabled = false;
         stopBtn.disabled = true;
-        broadcastActive = false;
     }
 }
 
 // Initialize event listeners when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    // Prevent form submissions
-    const broadcastForm = document.getElementById('broadcastForm');
-    const messageForm = document.getElementById('messageForm');
-    
-    if (broadcastForm) {
-        broadcastForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-        });
-    }
-    
-    if (messageForm) {
-        messageForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-        });
-    }
-    
     // Broadcast control buttons
     const startBroadcastBtn = document.getElementById('startBroadcastBtn');
     const stopBroadcastBtn = document.getElementById('stopBroadcastBtn');
