@@ -346,19 +346,25 @@ class MainActivity : AppCompatActivity() {
                                 Log.d(TAG, "Adding message to ViewModel: $text")
                                 
                                 // Handle internal server status messages
-                                if (text.startsWith("CLIENT_DISCONNECTED:")) {
+                                val normalizedMessage = text.trim()
+                                val normalizedPrefix = normalizedMessage.uppercase()
+
+                                if (normalizedPrefix.startsWith("CLIENT_DISCONNECTED:")) {
                                     // Server is reporting that another client disconnected
                                     // This could indicate server issues, so show a status
                                     Log.d(TAG, "Filtering out CLIENT_DISCONNECTED message")
                                     viewModel.addMessage(WebSocketMessage("Client status: Server connection lost", System.currentTimeMillis(), MessageType.CLIENT))
-                                } else if (text.startsWith("CLIENT_CONNECTED:")) {
+                                } else if (normalizedPrefix.startsWith("CLIENT_CONNECTED:")) {
                                     // Server is reporting that another client connected
                                     Log.d(TAG, "Filtering out CLIENT_CONNECTED message")
                                     // Don't show this internal message to the user
+                                } else if (normalizedPrefix.startsWith("CLIENT_COUNT:")) {
+                                    // Internal count update for other clients; do not surface to the UI
+                                    Log.d(TAG, "Filtering out CLIENT_COUNT message")
                                 } else {
                                     // Regular message from server - this should include broadcast messages
-                                    Log.d(TAG, "Adding regular message to display: $text")
-                                    viewModel.addMessage(WebSocketMessage("Server sent: $text", System.currentTimeMillis(), MessageType.SERVER))
+                                    Log.d(TAG, "Adding regular message to display: $normalizedMessage")
+                                    viewModel.addMessage(WebSocketMessage("Server sent: $normalizedMessage", System.currentTimeMillis(), MessageType.SERVER))
                                 }
                             }
                             Log.d(TAG, "Message processing completed")

@@ -7,8 +7,6 @@ data class BroadcastStatus(
     val isActive: Boolean,
     val interval: Long,
     val messageTemplate: String,
-    val clientsConnected: Int,
-    val messagesSent: Long,
     val port: Int? = null
 )
 

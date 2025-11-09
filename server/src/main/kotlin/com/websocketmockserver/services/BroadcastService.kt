@@ -3,6 +3,7 @@ package com.websocketmockserver.services
 import com.websocketmockserver.models.BroadcastStatus
 import com.websocketmockserver.util.getLocalIpAddress
 import io.ktor.websocket.DefaultWebSocketSession
+import io.ktor.websocket.send
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -48,6 +49,7 @@ class BroadcastService {
                     broadcastUdpMessage(message, port)
                     println("UDP broadcast sent on port $port: $message")
                     messagesSent++
+                    notifyClientsOfBroadcast(message)
                 } catch (e: Exception) {
                     println("UDP broadcast error: $e")
                 }
@@ -87,8 +89,6 @@ class BroadcastService {
             isActive = isActive,
             interval = interval,
             messageTemplate = messageTemplate,
-            clientsConnected = connectedClients.size,
-            messagesSent = messagesSent,
             port = port
         )
     }
@@ -125,6 +125,21 @@ class BroadcastService {
             e.printStackTrace()
         } finally {
             socket.close()
+        }
+    }
+
+    private suspend fun notifyClientsOfBroadcast(message: String) {
+        if (connectedClients.isEmpty()) {
+            return
+        }
+
+        val payload = "BROADCAST_MESSAGE:$message"
+        connectedClients.forEach { client ->
+            try {
+                client.send(payload)
+            } catch (e: Exception) {
+                println("Failed to notify client of broadcast: $e")
+            }
         }
     }
 }

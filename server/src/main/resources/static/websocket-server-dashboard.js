@@ -33,6 +33,7 @@ const ServerMessages = {
     CLIENT_COUNT: 'CLIENT_COUNT:',
     API_REQUEST: 'API_REQUEST:',
     SERVER_IP: 'SERVER_IP:',
+    BROADCAST_MESSAGE: 'BROADCAST_MESSAGE:',
     GET_SERVER_IP: 'GET_SERVER_IP'
 };
 
@@ -175,6 +176,9 @@ function connect() {
                 break;
             case 'SERVER_IP':
                 updateServerUrlDisplay(parsedMessage.payload);
+                break;
+            case 'BROADCAST_MESSAGE':
+                addMessage(`Broadcast sent: ${parsedMessage.payload}`, MessageType.SERVER_MESSAGE);
                 break;
             default:
                 // Try to parse as broadcast control response
@@ -496,14 +500,6 @@ function updateBroadcastStatus(status) {
         <div class="status-item">
             <span class="status-label">Interval:</span>
             <span class="status-value">${status.interval}ms</span>
-        </div>
-        <div class="status-item">
-            <span class="status-label">Clients:</span>
-            <span class="status-value">${status.clientsConnected}</span>
-        </div>
-        <div class="status-item">
-            <span class="status-label">Messages Sent:</span>
-            <span class="status-value">${status.messagesSent}</span>
         </div>
     `;
     
