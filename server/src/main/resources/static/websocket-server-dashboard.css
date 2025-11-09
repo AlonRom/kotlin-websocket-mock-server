@@ -147,24 +147,11 @@ body {
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
 
-.card h2 {
-    color: #FFFFFF;
-    margin-bottom: 20px;
-    font-size: 1.4rem;
-    font-weight: bold;
-}
-
 .card h3 {
     color: #E2E8F0;
     margin-bottom: 16px;
     font-size: 1.1rem;
     font-weight: 600;
-}
-
-.card h2.flex-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
 
 .action-item {
