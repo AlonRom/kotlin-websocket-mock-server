@@ -1,5 +1,7 @@
 # WebSocket Mock Server
 
+![WebSocket Server Dashboard](docs/websocket-dashboard.png)
+
 A simple Kotlin WebSocket server built with Ktor that provides a mock WebSocket endpoint for testing and development, with an Android example client.
 
 ## Features
@@ -14,69 +16,38 @@ A simple Kotlin WebSocket server built with Ktor that provides a mock WebSocket 
 
 ## Prerequisites
 
-- Java JDK 8 or higher
-- Gradle (included via wrapper)
-- Android Studio (for running the Android example)
+### Server
+- Java JDK 11 or higher (Gradle wrapper downloads the rest)
+- Bash-compatible shell (macOS/Linux) or PowerShell (Windows)
 
-### Windows Users
-- **Android Studio Terminal/Command Prompt**: Use `start-server.bat`
-- **PowerShell**: Use `.\start-server.ps1` (recommended for better process management)
-- **Git Bash/WSL**: Use `./start-server.sh` (same as macOS/Linux)
+### Android Example (optional)
+- Android Studio Hedgehog or newer
+- Android SDK 34+
+- USB-debuggable device or emulator
+
+> ℹ️ Windows users should run `make` from PowerShell (`pwsh` or Windows Terminal) so the platform-specific script can launch.
 
 ## Quick Start
 
 ### 1. Start the WebSocket Server
 
-#### Option 1: Simple commands (macOS/Linux - Recommended)
+#### Recommended: cross-platform `make` targets
 
-**Start the server:**
 ```bash
 make start
-```
-
-**Stop the server:**
-```bash
 make stop
-```
-
-**Restart the server:**
-```bash
 make restart
 ```
 
 > **What these commands do:**
-> - `make start` → Runs `./start-server.sh` which frees port 8081, starts the server, and opens your browser
-> - `make stop` → Runs `pkill -f "gradle.*run"` to stop all Gradle server processes
-> - `make restart` → Stops and then starts the server with a 2-second delay
+- `make start` → on macOS/Linux runs `start-server.sh`; on Windows runs `start-server.ps1`. Both free port 8081, start the server, and open your browser.
+- `make stop` → invokes the matching platform routine to stop the Gradle process.
+- `make restart` → stops first, waits 2 seconds, then starts again.
 
-#### Option 2: Platform-specific startup scripts
-
-**On macOS/Linux:**
-```bash
-./start-server.sh
-```
-
-**On Windows:**
-```cmd
-start-server.bat
-```
-
-**On Windows (PowerShell):**
-```powershell
-.\start-server.ps1
-```
-
-This will:
-- Free port 8081 if needed
-- Start the server
-- Automatically open your browser to `http://localhost:8081`
-- Begin broadcasting server availability on the network
-
-#### Option 3: Manual start
-```bash
-./gradlew :server:run
-```
-Then manually open `http://localhost:8081` in your browser.
+#### Alternatives
+- macOS/Linux script: `./start-server.sh`
+- Windows PowerShell: `.\start-server.ps1`
+- Direct Gradle (no browser auto-open): `./gradlew :server:run`
 
 ### 2. Run the Android Example App
 
@@ -120,36 +91,19 @@ ws://localhost:8081/ws
 
 ## Android Client
 
-The Android app automatically discovers the server on your network and provides a modern interface for testing WebSocket communication.
+The Android companion app auto-discovers servers on your network, supports manual connections, and offers a modern Material Design 3 UI for interactive testing.
 
-### Features
-- **Automatic Server Discovery**: Discovers servers via UDP broadcast
-- **Manual Connection**: Connect to any WebSocket server manually
-- **Real-time Messaging**: Send and receive messages in real-time
-- **API Testing**: Test various API actions with dynamic responses
-- **Modern UI**: Material Design 3 with dark theme
-- **Emulator Detection**: Automatically detects emulator environments
+```bash
+# Install debug build on a connected device/emulator
+./gradlew :examples:android:installDebug
 
-### Quick Start
+# Optional: run straight from Gradle
+./gradlew :examples:android:run
+```
 
-1. **Build and Install**:
-   ```bash
-   ./gradlew :examples:android:installDebug
-   ```
-
-2. **Launch the App**: The app will automatically discover the server on your network
-
-### Connection Methods
-
-- **Automatic Discovery**: The app listens for UDP broadcasts and automatically discovers available servers
-- **Manual Connection**: Enter any WebSocket URL manually in the input field
-- **Emulator Support**: Automatically detects emulator environments and prefills the connection URL
-
-### Network Configuration
-
-- **Real Device**: Automatically discovers the server using your computer's network IP
-- **Emulator**: Automatically detects and prefills the emulator host address (`10.0.2.2`)
-- **Manual**: You can enter any WebSocket URL manually
+- Automatic UDP discovery locates servers and reports their status.
+- Emulator detection pre-fills the loopback URL (`ws://10.0.2.2:8081/ws`).
+- Manual mode lets you target any WebSocket endpoint.
 
 ## Project Structure
 
@@ -173,43 +127,19 @@ websocket-mock-server/
 ├── build.gradle.kts          # Root build configuration
 ├── Makefile                  # Convenient commands (make start/stop)
 ├── start-server.sh           # Auto-start script (macOS/Linux)
-├── start-server.bat          # Auto-start script (Windows)
-├── start-server.ps1          # Auto-start script (PowerShell)
+├── start-server.ps1          # Auto-start script (Windows PowerShell)
 └── README.md                 # This file
 ```
 
 ## Stopping the Server
 
-### Quick Stop (macOS/Linux)
-```bash
-make stop
-```
-
-### Alternative Methods
-
-**Graceful shutdown:**
-Press `Ctrl+C` in the terminal where the server is running.
-
-**Force stop all Gradle processes:**
-```bash
-pkill -f "gradle.*run"
-```
-
-**Other kill commands:**
-```bash
-# Kill all Gradle run processes (what 'make stop' does)
-pkill -f "gradle.*run"
-
-# Kill specific port (if you need to free port 8081)
-lsof -ti:8081 | xargs kill -9
-
-# Kill all Java processes (nuclear option - use with caution)
-pkill -f java
-```
+- `make stop` (cross-platform)
+- Press `Ctrl+C` in the terminal that launched the server
+- If the port is wedged: `lsof -ti:8081 | xargs kill -9` (macOS/Linux)
 
 ## Development
 
-### Quick Commands (macOS/Linux)
+### Quick Commands
 ```bash
 # Build the project
 make build
@@ -233,11 +163,6 @@ make help
 ./gradlew :examples:android:build
 ```
 
-### Running with info
-```bash
-./gradlew runWithInfo
-```
-
 ## Configuration
 
 The server runs on port 8081 by default. You can change this in `server/src/main/kotlin/com/websocketmockserver/Application.kt`:
@@ -247,14 +172,6 @@ embeddedServer(Netty, port = 8081, host = "0.0.0.0") {
     // ...
 }
 ```
-
-### Android Configuration
-
-The Android app automatically discovers servers on the network and supports multiple connection methods:
-- **Automatic Discovery**: Discovers servers via UDP broadcast
-- **Manual Connection**: Enter any WebSocket URL manually
-- **Emulator Detection**: Automatically detects emulator environments and prefills connection URLs
-- **Network Agnostic**: Works with any network configuration without hardcoded IPs
 
 ## Dependencies
 
