@@ -173,7 +173,7 @@ function connect() {
                 updateServerUrlDisplay(parsedMessage.payload);
                 break;
             case 'BROADCAST_MESSAGE':
-                addMessage(`Broadcast sent: ${parsedMessage.payload}`, MessageType.SERVER_MESSAGE);
+                handleBroadcastMirror(parsedMessage.payload);
                 break;
             default:
                 // Try to parse as broadcast control response

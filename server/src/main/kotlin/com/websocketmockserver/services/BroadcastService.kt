@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Handles UDP discovery broadcasts and mirrors each emitted payload to WebSocket dashboards.
@@ -21,7 +22,8 @@ class BroadcastService {
     private var messageTemplate = ""
     private var port = 2505
     private var udpBroadcastJob: Job? = null
-    private var connectedClients: List<DefaultWebSocketSession> = emptyList()
+    private var connectedDashboardClients: List<DefaultWebSocketSession> = emptyList()
+    private val dashboardSessions = ConcurrentHashMap.newKeySet<DefaultWebSocketSession>()
 
     private companion object {
         private const val BROADCAST_ADDRESS = "255.255.255.255"
@@ -44,7 +46,7 @@ class BroadcastService {
         this.interval = interval
         this.messageTemplate = messageTemplate
         this.port = port
-        this.connectedClients = clients
+        updateClients(clients)
 
         println("Starting UDP broadcast - Template: $messageTemplate, Port: $port, Interval: ${interval}ms")
 
@@ -76,7 +78,15 @@ class BroadcastService {
      * Receives the current snapshot of connected WebSocket clients.
      */
     fun updateClients(clients: List<DefaultWebSocketSession>) {
-        this.connectedClients = clients
+        connectedDashboardClients = clients.filter { dashboardSessions.contains(it) }
+    }
+
+    fun registerDashboard(session: DefaultWebSocketSession) {
+        dashboardSessions.add(session)
+    }
+
+    fun unregisterDashboard(session: DefaultWebSocketSession) {
+        dashboardSessions.remove(session)
     }
 
     /**
@@ -125,12 +135,12 @@ class BroadcastService {
      * Mirrors the broadcast payload to every connected dashboard session.
      */
     private suspend fun notifyClientsOfBroadcast(message: String) {
-        if (connectedClients.isEmpty()) {
+        if (connectedDashboardClients.isEmpty()) {
             return
         }
 
         val payload = "$BROADCAST_PREFIX$message"
-        connectedClients.forEach { client ->
+        connectedDashboardClients.forEach { client ->
             try {
                 client.send(payload)
             } catch (e: Exception) {

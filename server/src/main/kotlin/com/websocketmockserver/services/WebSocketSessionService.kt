@@ -79,6 +79,7 @@ class WebSocketSessionService(
     private suspend fun onDisconnect() {
         println("Client disconnected: $session")
         connectedClients.remove(session)
+        broadcastService.unregisterDashboard(session)
         broadcastService.updateClients(connectedClients.toList())
 
         pendingRequests.entries.removeIf { it.value == session }
@@ -268,6 +269,8 @@ class WebSocketSessionService(
     private suspend fun handleSpecialMessage(message: String) {
         when (message) {
             GET_SERVER_IP_COMMAND -> {
+                broadcastService.registerDashboard(session)
+                broadcastService.updateClients(connectedClients.toList())
                 val localIp = getLocalIpAddress().orEmpty().ifBlank { "127.0.0.1" }
                 val response = SERVER_IP_PREFIX + localIp
                 try {
