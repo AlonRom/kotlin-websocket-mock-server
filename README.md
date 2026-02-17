@@ -17,7 +17,9 @@ A simple Kotlin WebSocket server built with Ktor that provides a mock WebSocket 
 ## Prerequisites
 
 ### Server
-- Java JDK 11 or higher (Gradle wrapper downloads the rest)
+- **Java JDK 11 or higher** (Required - Java 17 recommended)
+  - ⚠️ **Important**: The server will NOT start with Java 8 or Java 9
+  - 💡 **Having issues?** See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) or [QUICK_FIX.md](QUICK_FIX.md)
 - Bash-compatible shell (macOS/Linux) or PowerShell (Windows)
 
 ### Android Example (optional)
@@ -172,6 +174,39 @@ embeddedServer(Netty, port = 8081, host = "0.0.0.0") {
     // ...
 }
 ```
+
+## Troubleshooting
+
+### Dashboard Not Showing / Server Won't Start
+
+**Problem**: Server crashes with exit code `-1073741510` or times out  
+**Cause**: Java version too old (Java 8 or 9 installed)  
+**Solution**: Install Java 17
+
+**Quick Fix (Windows):**
+```powershell
+# 1. Install Java 17
+winget install Microsoft.OpenJDK.17 --accept-source-agreements --accept-package-agreements
+
+# 2. Find your Java installation path
+Get-ChildItem "C:\Program Files\Microsoft\jdk-*" -Directory | Select-Object FullName
+
+# 3. Set JAVA_HOME (replace with YOUR path from step 2)
+$env:JAVA_HOME = "YOUR_JAVA_PATH_HERE"
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+
+# 4. Start server
+.\gradlew.bat :server:run
+```
+
+📖 **Full guide**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed instructions  
+⚡ **Quick reference**: See [QUICK_FIX.md](QUICK_FIX.md) for the fastest solution
+
+### Other Common Issues
+
+- **Port 8081 already in use**: Run `make stop` or manually kill the process
+- **JAVA_HOME not set**: Set it manually or run the server with explicit Java path
+- **Gradle build fails**: Ensure internet connection for dependency downloads
 
 ## Dependencies
 
