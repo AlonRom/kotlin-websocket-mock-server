@@ -10,6 +10,7 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -95,9 +96,13 @@ class WebSocketSessionService(
         println("Number of connected clients: ${connectedClients.size}")
 
         when {
+            // Check for special string commands first (before JSON parsing)
+            message == GET_SERVER_IP_COMMAND -> handleSpecialMessage(message)
+            // Try JSON-based handlers
             handleBroadcastControl(message) -> Unit
             handleApiRequest(message) -> Unit
             handleApiResponse(message) -> Unit
+            // Fallback to special message handler
             else -> handleSpecialMessage(message)
         }
     }
@@ -106,6 +111,12 @@ class WebSocketSessionService(
      * Parses and executes broadcast control commands (start/stop/status).
      */
     private suspend fun handleBroadcastControl(message: String): Boolean {
+        // Only attempt JSON parsing if message looks like JSON
+        val trimmed = message.trimStart()
+        if (!trimmed.startsWith("{")) {
+            return false
+        }
+        
         return try {
             val request = json.decodeFromString<BroadcastControlRequest>(message)
             val action = request.action.lowercase(Locale.getDefault())
@@ -133,8 +144,12 @@ class WebSocketSessionService(
             session.send(json.encodeToString(response))
             println("Sent broadcast control response: ${response.action}")
             true
+        } catch (e: kotlinx.serialization.SerializationException) {
+            // Missing required fields - valid JSON but not our format, silently skip
+            false
         } catch (e: Exception) {
-            println("Not a broadcast control request: ${e.message}")
+            // Malformed JSON or other parsing errors - log for debugging
+            println("Error parsing broadcast control request: ${e.message}")
             false
         }
     }
@@ -200,6 +215,12 @@ class WebSocketSessionService(
      * Forwards API requests from external clients to the dashboard and tracks pending replies.
      */
     private suspend fun handleApiRequest(message: String): Boolean {
+        // Only attempt JSON parsing if message looks like JSON
+        val trimmed = message.trimStart()
+        if (!trimmed.startsWith("{")) {
+            return false
+        }
+        
         return try {
             val apiRequest = json.decodeFromString<ApiRequest>(message)
             println("Received API request: ${apiRequest.action}")
@@ -224,8 +245,12 @@ class WebSocketSessionService(
             }
 
             true
+        } catch (e: kotlinx.serialization.SerializationException) {
+            // Missing required fields - valid JSON but not our format, silently skip
+            false
         } catch (e: Exception) {
-            println("Not an API request: ${e.message}")
+            // Malformed JSON or other parsing errors - log for debugging
+            println("Error parsing API request: ${e.message}")
             false
         }
     }
@@ -234,6 +259,12 @@ class WebSocketSessionService(
      * Delivers responses originating from the dashboard back to the original requester.
      */
     private suspend fun handleApiResponse(message: String): Boolean {
+        // Only attempt JSON parsing if message looks like JSON
+        val trimmed = message.trimStart()
+        if (!trimmed.startsWith("{")) {
+            return false
+        }
+        
         return try {
             val apiResponse = json.decodeFromString<ApiResponse>(message)
             println("Received API response: ${apiResponse.action}")
@@ -257,8 +288,12 @@ class WebSocketSessionService(
                 }
             }
             true
+        } catch (e: kotlinx.serialization.SerializationException) {
+            // Missing required fields - valid JSON but not our format, silently skip
+            false
         } catch (e: Exception) {
-            println("Not an API response: ${e.message}")
+            // Malformed JSON or other parsing errors - log for debugging
+            println("Error parsing API response: ${e.message}")
             false
         }
     }

@@ -6,13 +6,14 @@ A simple Kotlin WebSocket server built with Ktor that provides a mock WebSocket 
 
 ## Features
 
-- WebSocket endpoint at `/ws`
-- Static file serving
-- Echo functionality for WebSocket messages
-- Automatic browser opening
-- **Android example app** demonstrating WebSocket client usage
-- **Automatic server discovery** via UDP broadcast
-- **Network-agnostic design** - no hardcoded IP addresses
+- **WebSocket endpoint** at `/ws` for real-time bidirectional communication
+- **Web dashboard** for managing connections, controlling broadcasts, and manipulating API responses
+- **UDP broadcast discovery** - servers automatically advertise themselves on the local network
+- **API request/response manipulation** - testers can control server responses through the dashboard
+- **Automatic IP detection** - intelligently selects the best network interface (cross-platform)
+- **Android example app** demonstrating WebSocket client usage with automatic server discovery
+- **Network-agnostic design** - no hardcoded IP addresses required
+- **Cross-platform support** - works on Windows, macOS, and Linux
 
 ## Prerequisites
 
@@ -79,17 +80,43 @@ make restart
 
 ## Usage
 
+### Web Dashboard
+
+When you start the server, a web dashboard automatically opens at `http://localhost:8081`. The dashboard provides:
+
+- **Server IP Detection**: Automatically detects and displays the server's network IP address
+- **UDP Broadcast Control**: Start/stop UDP broadcasts for automatic server discovery
+  - Configure broadcast message template (JSON format)
+  - Set broadcast port (default: 2505)
+  - Adjust broadcast interval (default: 10 seconds)
+- **API Request/Response Management**: 
+  - View incoming API requests from clients
+  - Manipulate responses with custom data, success/error states
+  - Test edge cases and error scenarios
+- **Real-time Communication**: Send messages to all connected clients
+- **Connection Monitoring**: View connected clients and connection status
+
 ### WebSocket Connection
+
 Connect to the WebSocket endpoint at:
 ```
 ws://localhost:8081/ws
 ```
 
+Or use the detected network IP (shown in the dashboard):
+```
+ws://<detected-ip>:8081/ws
+```
+
 ### Testing WebSocket
-1. Open the browser to `http://localhost:8081`
-2. Use browser developer tools or a WebSocket client
-3. Send messages to the WebSocket endpoint
-4. The server will echo back: "Echo: [your message]"
+
+1. Open the browser to `http://localhost:8081` (dashboard opens automatically)
+2. Use the dashboard to:
+   - Start UDP broadcast for automatic discovery
+   - Monitor API requests from clients
+   - Manipulate server responses for testing
+   - Send messages to all connected clients
+3. Connect clients (Android app, browser, or custom clients) to test your WebSocket implementation
 
 ## Android Client
 
@@ -113,17 +140,25 @@ The Android companion app auto-discovers servers on your network, supports manua
 websocket-mock-server/
 ├── server/                    # WebSocket server module
 │   ├── src/main/kotlin/com/websocketmockserver/
-│   │   └── Application.kt     # Main server application
+│   │   ├── MockServer.kt      # Main server application
+│   │   ├── services/         # Server services
+│   │   │   ├── BroadcastService.kt      # UDP broadcast management
+│   │   │   └── WebSocketSessionService.kt  # WebSocket session handling
+│   │   └── util/
+│   │       └── NetworkUtils.kt  # Network IP detection
 │   └── src/main/resources/
-│       ├── static/            # Static files
-│       └── application.conf   # Configuration
+│       └── static/            # Web dashboard files
+│           ├── websocket-server-dashboard.html
+│           ├── websocket-server-dashboard.js
+│           └── websocket-server-dashboard.css
 ├── examples/
 │   └── android/              # Android example app
 │       ├── src/main/java/com/example/websocketclient/
 │       │   ├── MainActivity.kt
 │       │   ├── MainViewModel.kt
 │       │   ├── MessagesAdapter.kt
-│       │   ├── ServerDiscovery.kt
+│       │   ├── ServerDiscovery.kt      # UDP discovery implementation
+│       │   ├── DynamicApiClient.kt     # API request/response handling
 │       │   └── WebSocketMessage.kt
 │       └── src/main/res/     # Android resources
 ├── build.gradle.kts          # Root build configuration
@@ -167,13 +202,31 @@ make help
 
 ## Configuration
 
-The server runs on port 8081 by default. You can change this in `server/src/main/kotlin/com/websocketmockserver/Application.kt`:
+### Server Port
+
+The server runs on port 8081 by default. You can change this in `server/src/main/kotlin/com/websocketmockserver/MockServer.kt`:
 
 ```kotlin
-embeddedServer(Netty, port = 8081, host = "0.0.0.0") {
-    // ...
-}
+private const val SERVER_PORT = 8081
 ```
+
+### UDP Broadcast Discovery
+
+- **Default broadcast port**: 2505
+- **Default broadcast interval**: 10 seconds (10000ms)
+- **Default broadcast message**: JSON format with WebSocket URL
+
+The broadcast message template can be customized in the web dashboard. The server automatically detects its network IP address and can update the broadcast message accordingly.
+
+### IP Detection
+
+The server uses intelligent IP detection that:
+- Filters out virtual interfaces (Docker, VMs, VPNs)
+- Prioritizes real network interfaces
+- Prefers `10.x.x.x` ranges over `192.168.64.x` (Docker Desktop)
+- Works cross-platform (Windows, macOS, Linux)
+
+The detected IP is displayed in the web dashboard and can be used for UDP broadcasts.
 
 ## Troubleshooting
 
