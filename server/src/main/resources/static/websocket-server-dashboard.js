@@ -361,6 +361,20 @@ function updateServerUrlDisplay(serverIp) {
     document.getElementById('serverHost').textContent = serverIp;
     console.log('Server IP detected:', serverIp);
     
+    // Auto-update broadcast message with detected IP if field is empty or has default value
+    const broadcastMessageField = document.getElementById('broadcastMessage');
+    if (broadcastMessageField) {
+        const currentValue = broadcastMessageField.value.trim();
+        const defaultPattern = /ws:\/\/10\.100\.102\.67:8081\/ws/;
+        const emptyPattern = /^\s*\{\s*\}\s*$/;
+        
+        if (!currentValue || emptyPattern.test(currentValue) || defaultPattern.test(currentValue)) {
+            const wsUrl = `ws://${serverIp}:8081/ws`;
+            broadcastMessageField.value = `{"url":"${wsUrl}"}`;
+            console.log('Auto-updated broadcast message with detected IP:', wsUrl);
+        }
+    }
+    
     // Hide the loading indicator
     const loadingIndicator = document.getElementById('ipLoadingIndicator');
     if (loadingIndicator) {
